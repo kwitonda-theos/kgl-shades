@@ -26,6 +26,9 @@ export const metadata: Metadata = {
     "streetwear shades",
     "premium sunglasses",
     "KGL Shades",
+    "Sunglasses in kigali",
+    "kigali sunglasses",
+    "sunglasses shop in kigali",
   ],
   openGraph: {
     title: "KGL SHADES — Luxury Eyewear for the Bold",
