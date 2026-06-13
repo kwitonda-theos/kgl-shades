@@ -106,7 +106,7 @@ img {
   background: var(--bg-glass-heavy);
   backdrop-filter: blur(20px) saturate(1.2);
   -webkit-backdrop-filter: blur(20px) saturate(1.2);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid black;
 }
 
 .site-logo {
@@ -204,9 +204,11 @@ img {
     transform: scale(0);
     opacity: 0;
   }
+
   60% {
     transform: scale(1.2);
   }
+
   100% {
     transform: scale(1);
     opacity: 1;
@@ -275,12 +277,10 @@ img {
   right: 0;
   z-index: 10;
   padding: 60px 48px 48px;
-  background: linear-gradient(
-    to top,
-    rgba(10, 10, 10, 0.9) 0%,
-    rgba(10, 10, 10, 0.4) 60%,
-    transparent 100%
-  );
+  background: linear-gradient(to top,
+      rgba(10, 10, 10, 0.9) 0%,
+      rgba(10, 10, 10, 0.4) 60%,
+      transparent 100%);
 }
 
 .lifestyle-tagline {
@@ -295,8 +295,8 @@ img {
 
 .lifestyle-sub {
   font-family: var(--font-heading);
-  font-size: 14px;
-  font-weight: 300;
+  font-size: 20px;
+  font-weight: 500;
   letter-spacing: 0.25em;
   color: var(--accent);
   margin-top: 12px;
@@ -372,6 +372,7 @@ img {
     opacity: 0;
     transform: translateY(30px);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0);
@@ -494,12 +495,10 @@ img {
   right: 0;
   z-index: 10;
   padding: 100px 24px 80px;
-  background: linear-gradient(
-    to top,
-    rgba(10, 10, 10, 0.95) 0%,
-    rgba(10, 10, 10, 0.6) 50%,
-    transparent 100%
-  );
+  background: linear-gradient(to top,
+      rgba(10, 10, 10, 0.95) 0%,
+      rgba(10, 10, 10, 0.6) 50%,
+      transparent 100%);
 }
 
 .mobile-feed-name {
@@ -568,12 +567,14 @@ img {
 }
 
 @keyframes float-pulse {
+
   0%,
   100% {
     box-shadow:
       0 0 40px var(--accent-glow),
       0 8px 32px rgba(0, 0, 0, 0.4);
   }
+
   50% {
     box-shadow:
       0 0 60px var(--accent-glow),
@@ -642,6 +643,7 @@ img {
   .drawer--desktop {
     display: block;
   }
+
   .drawer--mobile {
     display: none !important;
   }
@@ -821,6 +823,7 @@ img {
     opacity: 0.3;
     transform: translateY(6px);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0);
@@ -997,6 +1000,7 @@ img {
     opacity: 0;
     transform: translateY(12px);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0);
@@ -1007,6 +1011,7 @@ img {
   0% {
     opacity: 0;
   }
+
   100% {
     opacity: 1;
   }
