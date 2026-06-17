@@ -39,6 +39,8 @@ export const metadata: Metadata = {
   },
 };
 
+import Script from "next/script";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -48,7 +50,18 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${inter.variable} ${outfit.variable}`}
+      suppressHydrationWarning
     >
+      <head>
+        {/* Prevent flash of wrong theme — runs synchronously before paint */}
+        <Script
+          id="theme-script"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `(function(){var t=localStorage.getItem('kgl-theme');if(t==='light')document.documentElement.setAttribute('data-theme','light');})();`,
+          }}
+        />
+      </head>
       <body>
         <CartProvider>{children}</CartProvider>
       </body>
