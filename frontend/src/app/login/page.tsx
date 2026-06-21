@@ -43,7 +43,7 @@ export default function LoginPage() {
   return (
     <div className={s.page}>
       {/* Subtle ambient glow behind the card */}
-      <div className={s.ambient} />
+      {/* <div className={s.ambient} /> */}
 
       <div className={s.container}>
         {/* Logo — links back to home */}
