@@ -65,7 +65,7 @@ export default function SignupPage() {
   return (
     <div className={s.page}>
       {/* Subtle ambient glow */}
-      <div className={s.ambient} />
+      {/* <div className={s.ambient} /> */}
 
       <div className={s.container}>
         {/* Logo */}
