@@ -21,6 +21,8 @@ const getUsers = async (req, res) => {
 // @route   GET /api/users/:id
 // @access  Public
 // ============================================================
+
+
 const getUserById = async (req, res) => {
     try {
         // req.params.id pulls the :id from the URL (e.g. /api/users/abc123)

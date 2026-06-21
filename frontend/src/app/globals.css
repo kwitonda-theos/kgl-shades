@@ -227,14 +227,18 @@ img {
   width: 100%;
 }
 
-.cart-button {
+.cart-button,
+.profile-button {
   position: relative;
   padding: 8px;
   color: var(--text-secondary);
   transition: color var(--transition-fast);
+  display: flex;
+  align-items: center;
 }
 
-.cart-button:hover {
+.cart-button:hover,
+.profile-button:hover {
   color: var(--text-primary);
 }
 
