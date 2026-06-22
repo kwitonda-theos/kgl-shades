@@ -82,7 +82,7 @@ export default function Header() {
       <div className="header-controls">
         {/* Profile / Auth */}
         {user ? (
-          <div className="profile-menu" style={{ position: "relative" }}>
+          <div className="profile-menu">
             <button
               className="profile-avatar"
               onClick={() => setShowDropdown(!showDropdown)}
