@@ -47,12 +47,24 @@ export default function SignupPage() {
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || "Registration failed");
+        const errData = await res.json();
+        throw new Error(errData.message || "Registration failed");
       }
 
-      // Successful signup — redirect to login
-      window.location.href = "/login";
+      const data = await res.json();
+
+      // Store the JWT token and user info in localStorage
+      localStorage.setItem("kgl-token", data.token);
+      localStorage.setItem("kgl-user", JSON.stringify({
+        _id: data._id,
+        email: data.email,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        phone: data.phone,
+      }));
+
+      // Successful signup — redirect to home (user is now logged in)
+      window.location.href = "/";
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "Something went wrong";

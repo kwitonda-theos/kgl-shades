@@ -3,16 +3,38 @@
 import React, { useEffect, useState } from "react";
 import { useCart } from "@/context/CartContext";
 
+interface UserData {
+  _id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  phone: number;
+}
+
 export default function Header() {
   const { itemCount } = useCart();
   const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [user, setUser] = useState<UserData | null>(null);
+  const [showDropdown, setShowDropdown] = useState(false);
 
-  // On mount, read saved preference
+  // On mount, read saved preferences
   useEffect(() => {
     const saved = localStorage.getItem("kgl-theme") as "dark" | "light" | null;
     if (saved) {
       setTheme(saved);
       document.documentElement.setAttribute("data-theme", saved);
+    }
+
+    // Check if user is logged in
+    const userData = localStorage.getItem("kgl-user");
+    if (userData) {
+      try {
+        setUser(JSON.parse(userData));
+      } catch {
+        // Invalid data — clear it
+        localStorage.removeItem("kgl-user");
+        localStorage.removeItem("kgl-token");
+      }
     }
   }, []);
 
@@ -25,6 +47,21 @@ export default function Header() {
     } else {
       document.documentElement.removeAttribute("data-theme");
     }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("kgl-token");
+    localStorage.removeItem("kgl-user");
+    setUser(null);
+    setShowDropdown(false);
+    window.location.href = "/";
+  };
+
+  // Get initials from user name
+  const getInitials = (u: UserData) => {
+    const first = u.firstName?.[0] || "";
+    const last = u.lastName?.[0] || "";
+    return (first + last).toUpperCase() || u.email[0].toUpperCase();
   };
 
   return (
@@ -43,23 +80,60 @@ export default function Header() {
 
       {/* Controls */}
       <div className="header-controls">
-        {/* Profile */}
-        <a href="/login" className="profile-button" aria-label="Go to Profile/Auth">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="22"
-            height="22"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-            <circle cx="12" cy="7" r="4" />
-          </svg>
-        </a>
+        {/* Profile / Auth */}
+        {user ? (
+          <div className="profile-menu" style={{ position: "relative" }}>
+            <button
+              className="profile-avatar"
+              onClick={() => setShowDropdown(!showDropdown)}
+              aria-label="User menu"
+              id="user-menu-button"
+            >
+              {getInitials(user)}
+            </button>
+
+            {showDropdown && (
+              <div className="profile-dropdown" id="user-dropdown">
+                <div className="profile-dropdown-header">
+                  <span className="profile-dropdown-name">
+                    {user.firstName} {user.lastName}
+                  </span>
+                  <span className="profile-dropdown-email">{user.email}</span>
+                </div>
+                <div className="profile-dropdown-divider" />
+                <button
+                  className="profile-dropdown-item"
+                  onClick={handleLogout}
+                  id="logout-button"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                  </svg>
+                  Sign Out
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <a href="/login" className="profile-button" aria-label="Go to Profile/Auth">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+          </a>
+        )}
 
         {/* Theme Toggle */}
         <button

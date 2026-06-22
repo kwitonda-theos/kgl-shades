@@ -1,4 +1,18 @@
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const User = require('../models/user');
+
+// JWT secret — in production, store this in your .env file
+const JWT_SECRET = process.env.JWT_SECRET || 'kgl-shades-secret-key-change-me';
+
+// Helper: generate a JWT token for a user
+const generateToken = (user) => {
+    return jwt.sign(
+        { id: user._id, email: user.email },
+        JWT_SECRET,
+        { expiresIn: '7d' } // token lasts 7 days
+    );
+};
 
 // ============================================================
 // @desc    Get all users
@@ -8,7 +22,8 @@ const User = require('../models/user');
 const getUsers = async (req, res) => {
     try {
         // .find({}) returns every document in the 'users' collection
-        const users = await User.find({});
+        // Exclude passwordHash from the response for security
+        const users = await User.find({}).select('-passwordHash');
         res.status(200).json(users);
     } catch (error) {
         // 500 = Internal Server Error — something broke on our end
@@ -21,12 +36,10 @@ const getUsers = async (req, res) => {
 // @route   GET /api/users/:id
 // @access  Public
 // ============================================================
-
-
 const getUserById = async (req, res) => {
     try {
         // req.params.id pulls the :id from the URL (e.g. /api/users/abc123)
-        const user = await User.findById(req.params.id);
+        const user = await User.findById(req.params.id).select('-passwordHash');
 
         // If no document matched the given ID, return a 404
         if (!user) {
@@ -40,14 +53,19 @@ const getUserById = async (req, res) => {
 };
 
 // ============================================================
-// @desc    Create a new user
+// @desc    Register a new user (signup)
 // @route   POST /api/users
 // @access  Public
 // ============================================================
 const createUser = async (req, res) => {
     try {
         // Destructure the fields we expect from the request body
-        const { email, passwordHash, firstName, lastName, phone } = req.body;
+        const { email, passwordHash: plainPassword, firstName, lastName, phone } = req.body;
+
+        // Validate required fields
+        if (!email || !plainPassword || !phone) {
+            return res.status(400).json({ message: 'Email, password, and phone are required' });
+        }
 
         // Check if a user with this email already exists (email is unique)
         const existingUser = await User.findOne({ email });
@@ -55,17 +73,75 @@ const createUser = async (req, res) => {
             return res.status(400).json({ message: 'A user with this email already exists' });
         }
 
+        // Hash the password with bcrypt (10 salt rounds)
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(plainPassword, salt);
+
         // .create() is shorthand for new User({...}).save()
         const user = await User.create({
             email,
-            passwordHash,
+            passwordHash: hashedPassword,
             firstName,
             lastName,
             phone
         });
 
+        // Generate a JWT token so the user is logged in immediately after signup
+        const token = generateToken(user);
+
         // 201 = Created — the resource was successfully created
-        res.status(201).json(user);
+        // Return user data (without the hashed password) + token
+        res.status(201).json({
+            _id: user._id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            phone: user.phone,
+            token
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// ============================================================
+// @desc    Login a user
+// @route   POST /api/users/login
+// @access  Public
+// ============================================================
+const loginUser = async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        // Validate required fields
+        if (!email || !password) {
+            return res.status(400).json({ message: 'Email and password are required' });
+        }
+
+        // Find the user by email
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(401).json({ message: 'Invalid email or password' });
+        }
+
+        // Compare the provided password with the stored hash
+        const isMatch = await bcrypt.compare(password, user.passwordHash);
+        if (!isMatch) {
+            return res.status(401).json({ message: 'Invalid email or password' });
+        }
+
+        // Generate a JWT token
+        const token = generateToken(user);
+
+        // Return user data (without the hashed password) + token
+        res.status(200).json({
+            _id: user._id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            phone: user.phone,
+            token
+        });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -85,7 +161,7 @@ const updateUser = async (req, res) => {
             req.params.id,
             req.body,
             { new: true, runValidators: true }
-        );
+        ).select('-passwordHash');
 
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
@@ -122,6 +198,7 @@ module.exports = {
     getUsers,
     getUserById,
     createUser,
+    loginUser,
     updateUser,
     deleteUser
 };

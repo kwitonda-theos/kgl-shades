@@ -9,7 +9,8 @@ const Users = new mongoose.Schema({
         trim: true
     },
     passwordHash: {
-        type: String
+        type: String,
+        required: true
     },
     firstName: { type: String },
     lastName: { type: String },
@@ -18,7 +19,7 @@ const Users = new mongoose.Schema({
         required: true,
         validate: {
             validator: Number.isInteger,
-            message: '{VAlUE} is not a number'
+            message: '{VALUE} is not a number'
         }
     }
 },{timestamps: true});

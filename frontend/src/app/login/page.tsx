@@ -25,9 +25,21 @@ export default function LoginPage() {
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || "Invalid credentials");
+        const errData = await res.json();
+        throw new Error(errData.message || "Invalid credentials");
       }
+
+      const data = await res.json();
+
+      // Store the JWT token and user info in localStorage
+      localStorage.setItem("kgl-token", data.token);
+      localStorage.setItem("kgl-user", JSON.stringify({
+        _id: data._id,
+        email: data.email,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        phone: data.phone,
+      }));
 
       // Successful login — redirect to home
       window.location.href = "/";
