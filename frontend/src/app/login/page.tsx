@@ -1,10 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import s from "./login.module.css";
 
 export default function LoginPage() {
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect");
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -41,8 +45,12 @@ export default function LoginPage() {
         phone: data.phone,
       }));
 
-      // Successful login — redirect to home
-      window.location.href = "/";
+      // Successful login — redirect to where they came from or home
+      if (redirectTo === "checkout") {
+        window.location.href = "/?openCart=true";
+      } else {
+        window.location.href = "/";
+      }
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "Something went wrong";
@@ -236,7 +244,7 @@ export default function LoginPage() {
         {/* Footer */}
         <p className={s.footer}>
           Don&apos;t have an account?{" "}
-          <Link href="/signup" className={s.footerLink}>
+          <Link href={`/signup${redirectTo ? `?redirect=${redirectTo}` : ""}`} className={s.footerLink}>
             Create one
           </Link>
         </p>

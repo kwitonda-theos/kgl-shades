@@ -8,7 +8,8 @@ interface CartContextType {
   itemCount: number;
   cartTotal: number;
   addToCart: (product: SunglassesProduct, lens: LensOption) => void;
-  removeFromCart: (productId: string) => void;
+  removeFromCart: (productId: string, lensId: string) => void;
+  updateQuantity: (productId: string, lensId: string, quantity: number) => void;
   clearCart: () => void;
 }
 
@@ -39,9 +40,37 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
-  const removeFromCart = useCallback((productId: string) => {
-    setItems((prev) => prev.filter((item) => item.product.id !== productId));
+  const removeFromCart = useCallback((productId: string, lensId: string) => {
+    setItems((prev) =>
+      prev.filter(
+        (item) =>
+          !(item.product.id === productId && item.selectedLens.id === lensId)
+      )
+    );
   }, []);
+
+  const updateQuantity = useCallback(
+    (productId: string, lensId: string, quantity: number) => {
+      if (quantity <= 0) {
+        // Remove the item if quantity goes to 0 or below
+        setItems((prev) =>
+          prev.filter(
+            (item) =>
+              !(item.product.id === productId && item.selectedLens.id === lensId)
+          )
+        );
+        return;
+      }
+      setItems((prev) =>
+        prev.map((item) =>
+          item.product.id === productId && item.selectedLens.id === lensId
+            ? { ...item, quantity }
+            : item
+        )
+      );
+    },
+    []
+  );
 
   const clearCart = useCallback(() => {
     setItems([]);
@@ -59,7 +88,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <CartContext.Provider
-      value={{ items, itemCount, cartTotal, addToCart, removeFromCart, clearCart }}
+      value={{
+        items,
+        itemCount,
+        cartTotal,
+        addToCart,
+        removeFromCart,
+        updateQuantity,
+        clearCart,
+      }}
     >
       {children}
     </CartContext.Provider>

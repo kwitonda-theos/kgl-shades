@@ -1,10 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import s from "./signup.module.css";
 
 export default function SignupPage() {
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect");
+
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -63,8 +67,12 @@ export default function SignupPage() {
         phone: data.phone,
       }));
 
-      // Successful signup — redirect to home (user is now logged in)
-      window.location.href = "/";
+      // Successful signup — redirect based on where they came from
+      if (redirectTo === "checkout") {
+        window.location.href = "/?openCart=true";
+      } else {
+        window.location.href = "/";
+      }
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "Something went wrong";
@@ -324,7 +332,7 @@ export default function SignupPage() {
         {/* Footer */}
         <p className={s.footer}>
           Already have an account?{" "}
-          <Link href="/login" className={s.footerLink}>
+          <Link href={`/login${redirectTo ? `?redirect=${redirectTo}` : ""}`} className={s.footerLink}>
             Sign in
           </Link>
         </p>
