@@ -1715,9 +1715,11 @@ img {
   font-family: var(--font-heading);
   font-size: 12px;
   font-weight: 400;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.13em;
   color: var(--text-muted);
   text-transform: uppercase;
+  margin-right: 60px;
+  margin-bottom: 20px;
 }
 
 /* Cart Items List */

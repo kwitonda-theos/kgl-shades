@@ -67,7 +67,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
       // Order placed successfully
       clearCart();
       onClose();
-      alert("Order placed successfully! 🎉");
+      alert("Order placed successfully! ");
     } catch {
       alert("Something went wrong placing your order. Please try again.");
     }
