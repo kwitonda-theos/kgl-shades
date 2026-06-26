@@ -21,7 +21,12 @@ const Users = new mongoose.Schema({
             validator: Number.isInteger,
             message: '{VALUE} is not a number'
         }
+    },
+    role: {
+        type: String,
+        enum: ['user', 'admin'],
+        default: 'user'
     }
 },{timestamps: true});
 
-module.exports = mongoose.model('User', Users)
+module.exports = mongoose.models.User || mongoose.model('User', Users);

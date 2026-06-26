@@ -43,6 +43,7 @@ export default function LoginPage() {
         firstName: data.firstName,
         lastName: data.lastName,
         phone: data.phone,
+        role: data.role,
       }));
 
       // Successful login — redirect to where they came from or home

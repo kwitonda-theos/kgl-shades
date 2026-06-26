@@ -65,6 +65,7 @@ export default function SignupPage() {
         firstName: data.firstName,
         lastName: data.lastName,
         phone: data.phone,
+        role: data.role,
       }));
 
       // Successful signup — redirect based on where they came from

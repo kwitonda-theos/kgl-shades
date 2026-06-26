@@ -97,6 +97,7 @@ const createUser = async (req, res) => {
             firstName: user.firstName,
             lastName: user.lastName,
             phone: user.phone,
+            role: user.role,
             token
         });
     } catch (error) {
@@ -140,6 +141,7 @@ const loginUser = async (req, res) => {
             firstName: user.firstName,
             lastName: user.lastName,
             phone: user.phone,
+            role: user.role,
             token
         });
     } catch (error) {

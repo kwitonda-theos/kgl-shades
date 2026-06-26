@@ -10,6 +10,7 @@ interface UserData {
   firstName: string;
   lastName: string;
   phone: number;
+  role?: string;
 }
 
 export default function Header() {
@@ -120,6 +121,21 @@ export default function Header() {
                     <span className="profile-dropdown-email">{user.email}</span>
                   </div>
                   <div className="profile-dropdown-divider" />
+                  {user.role === 'admin' && (
+                    <a
+                      href="/admin"
+                      className="profile-dropdown-item"
+                      id="admin-dashboard-link"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="3" width="7" height="7" />
+                        <rect x="14" y="3" width="7" height="7" />
+                        <rect x="14" y="14" width="7" height="7" />
+                        <rect x="3" y="14" width="7" height="7" />
+                      </svg>
+                      Admin Dashboard
+                    </a>
+                  )}
                   <button
                     className="profile-dropdown-item"
                     onClick={handleLogout}
