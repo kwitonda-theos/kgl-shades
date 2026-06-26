@@ -168,7 +168,7 @@ export default function AdminLayout({
 
           <div className="admin-topbar-right">
             <button
-              className="admin-hamburger" // Reuse this class for the hover effect or make a specific one, actually nav-action is used in Header. Let's use a simple style.
+              className="admin-theme-toggle"
               onClick={toggleTheme}
               aria-label="Toggle theme"
               style={{ background: "none", border: "none", color: "var(--text-secondary)", cursor: "pointer", padding: "8px", borderRadius: "var(--radius-sm)" }}

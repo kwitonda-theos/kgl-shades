@@ -2952,6 +2952,15 @@ img {
   background: #ef4444;
 }
 
+.admin-theme-toggle {
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.admin-theme-toggle:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: var(--text-primary) !important;
+}
+
 /* ─── Admin Responsive ─── */
 @media (max-width: 1024px) {
   .admin-sidebar {
