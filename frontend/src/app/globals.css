@@ -3127,7 +3127,7 @@ img {
   gap: 0px;                    /* add a small gap between the 2 cards */
   flex: 1;
   overflow: hidden;
-  max-width: 1400px;
+  max-width: 1200px;
   width: 100%;
   margin: 0 auto;
   padding: 0 24px 24px;
