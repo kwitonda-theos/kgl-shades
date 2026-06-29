@@ -7,9 +7,10 @@ const lensOptions = new mongoose.Schema({
 })
 const Products = new mongoose.Schema({
     name: {type: String,required: true},
+    description: {type: String, default: ''},
     basePrice: {type: Number, required: true},
     mainImage: {type: String, required: true},
-    lifestyleImage: {type: String,required: true},
+    lifestyleImage: {type: String, required: true},
 
     // embed lens options
     lensOption: [lensOptions]

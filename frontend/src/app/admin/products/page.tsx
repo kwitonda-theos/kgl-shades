@@ -13,6 +13,7 @@ interface LensOption {
 interface Product {
   _id: string;
   name: string;
+  description: string;
   basePrice: number;
   mainImage: string;
   lifestyleImage?: string;
@@ -22,6 +23,7 @@ interface Product {
 
 interface ProductForm {
   name: string;
+  description: string;
   basePrice: string;
   mainImage: string;
   lifestyleImage: string;
@@ -32,6 +34,7 @@ const emptyLens: LensOption = { name: "", description: "", priceUpcharge: 0 };
 
 const emptyForm: ProductForm = {
   name: "",
+  description: "",
   basePrice: "",
   mainImage: "",
   lifestyleImage: "",
@@ -90,6 +93,7 @@ export default function AdminProductsPage() {
     setEditingProduct(product);
     setForm({
       name: product.name,
+      description: product.description || "",
       basePrice: product.basePrice.toString(),
       mainImage: product.mainImage,
       lensOption: product.lensOption.length > 0
@@ -197,6 +201,7 @@ export default function AdminProductsPage() {
     try {
       const body = {
         name: form.name,
+        description: form.description,
         basePrice: parseFloat(form.basePrice),
         mainImage: form.mainImage,
         lifestyleImage: form.lifestyleImage,
@@ -390,6 +395,19 @@ export default function AdminProductsPage() {
                     placeholder="e.g. 189"
                   />
                 </div>
+              </div>
+
+              {/* Description */}
+              <div className="admin-form-group">
+                <label className="admin-form-label">Description</label>
+                <textarea
+                  className="admin-form-input"
+                  rows={3}
+                  value={form.description}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  placeholder="Short product description shown on the homepage..."
+                  style={{ resize: "vertical", fontFamily: "inherit" }}
+                />
               </div>
 
               {/* Image Upload */}

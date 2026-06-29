@@ -3035,3 +3035,308 @@ img {
   background: var(--accent);
   color: var(--bg-primary);
 }
+
+/* ══════════════════════════════════════════════════
+   COLLECTION PICKER — Full-screen landing (no scroll)
+   ══════════════════════════════════════════════════ */
+
+/* The whole picker fills exactly the viewport, padded for the fixed 72px header */
+.collection-picker {
+  height: 100vh;
+  padding-top: 72px;
+  background: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* Loading state */
+.collection-picker-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  padding-top: 72px;
+  box-sizing: border-box;
+  gap: 16px;
+  color: var(--text-secondary);
+  font-family: var(--font-heading);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-size: 13px;
+}
+
+.collection-picker-spinner {
+  width: 28px;
+  height: 28px;
+  /* border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%; */
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Compact hero headline — minimal vertical space */
+.collection-picker-hero {
+  text-align: center;
+  padding: 14px 24px 10px;
+  flex-shrink: 0;
+}
+
+.collection-picker-title {
+  font-family: var(--font-heading);
+  font-size: clamp(1.2rem, 2.5vw, 1.9rem);
+  font-weight: 800;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  margin: 0 0 4px;
+  line-height: 1;
+}
+
+.collection-picker-sub {
+  font-family: var(--font-body);
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* Empty state */
+.collection-picker-empty {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: 1;
+  color: var(--text-muted);
+  font-size: 14px;
+  letter-spacing: 0.05em;
+}
+
+/* Grid — always 2 columns, fills remaining height, centered */
+.collection-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0px;
+  flex: 1;
+  overflow: hidden;
+  max-width: 1100px;
+  width: 100%;
+  margin: 0px  auto;
+  padding: 0 24px 14px;
+  box-sizing: border-box;
+  min-height: 0;
+}
+
+/* Collection card — height driven by the grid row, not aspect-ratio */
+.collection-card {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-card);
+  border: none;
+  cursor: pointer;
+  display: block;
+  width: 100%;
+  height: 100%;               /* fills the grid cell */
+  padding: 0;
+  outline: none;
+  /* border-radius: var(--radius-md); */
+}
+
+.collection-card-image-wrapper {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.collection-card-image {
+  object-fit: cover;
+  transition: transform 0.7s var(--ease-out-expo);
+}
+
+.collection-card:hover .collection-card-image,
+.collection-card--hovered .collection-card-image {
+  transform: scale(1.06);
+}
+
+.collection-card-no-image {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #1a1a1a, #0a0a0a);
+}
+
+/* Gradient overlay */
+.collection-card-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.90) 0%,
+    rgba(0, 0, 0, 0.35) 45%,
+    rgba(0, 0, 0, 0.05) 100%
+  );
+  display: flex;
+  align-items: flex-end;
+  padding: 28px 28px;
+  transition: background 0.4s ease;
+}
+
+.collection-card:hover .collection-card-overlay,
+.collection-card--hovered .collection-card-overlay {
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.96) 0%,
+    rgba(0, 0, 0, 0.50) 50%,
+    rgba(0, 0, 0, 0.1) 100%
+  );
+}
+
+.collection-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+  width: 100%;
+}
+
+.collection-card-count {
+  font-family: var(--font-body);
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0;
+}
+
+.collection-card-name {
+  font-family: var(--font-heading);
+  font-size: clamp(1.3rem, 2.5vw, 2rem);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #ffffff;
+  margin: 0;
+  line-height: 1.05;
+}
+
+.collection-card-desc {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.60);
+  margin: 2px 0 0;
+  line-height: 1.5;
+  max-width: 300px;
+}
+
+.collection-card-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-body);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-top: 10px;
+  transform: translateY(4px);
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease, color 0.2s ease;
+}
+
+.collection-card:hover .collection-card-cta,
+.collection-card--hovered .collection-card-cta {
+  opacity: 1;
+  transform: translateY(0);
+  color: var(--text-primary);
+}
+
+/* ── BREADCRUMB (back navigation) ─────────── */
+.collection-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 28px;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-body);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.collection-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  padding: 4px 0;
+  transition: color var(--transition-fast);
+}
+
+.collection-back-btn:hover {
+  color: var(--text-primary);
+}
+
+.collection-breadcrumb-sep {
+  color: var(--text-muted);
+}
+
+.collection-breadcrumb-current {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* ── RESPONSIVE ──────────────────────────── */
+@media (max-width: 768px) {
+  .collection-picker {
+    height: auto;
+    min-height: 100vh;
+    min-height: 100svh;
+    overflow: auto;
+  }
+
+  .collection-picker-hero {
+    padding: 32px 20px 20px;
+  }
+
+  .collection-grid {
+    grid-template-columns: 1fr;
+    gap: 3px;
+    padding: 0 0 24px;
+    flex: none;
+    max-width: 100%;
+  }
+
+  .collection-card {
+    aspect-ratio: 4 / 3;
+    height: auto;
+    border-radius: 0;
+  }
+
+  .collection-card-overlay {
+    padding: 24px 20px;
+  }
+
+  .collection-card-cta {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .collection-breadcrumb {
+    padding: 12px 16px;
+  }
+}
