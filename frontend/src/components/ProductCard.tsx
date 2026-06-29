@@ -23,7 +23,7 @@ export default function ProductCard({
       onClick={() => onClick(product)}
       onMouseEnter={() => onHover(product)}
       style={{ animationDelay: `${index * 100}ms` }}
-      aria-label={`View ${product.name} — $${product.basePrice}`}
+      aria-label={`View ${product.name} — FRW ${product.basePrice}`}
     >
       {/* Image Container */}
       <div className="product-card-image-wrapper">
@@ -45,7 +45,7 @@ export default function ProductCard({
       {/* Info Bar */}
       <div className="product-card-info">
         <h3 className="product-card-name">{product.name}</h3>
-        <span className="product-card-price">${product.basePrice}</span>
+        <span className="product-card-price">FRW {product.basePrice}</span>
       </div>
     </button>
   );

@@ -41,7 +41,7 @@ const getProductById = async (req, res) => {
 // ============================================================
 const createProduct = async (req, res) => {
     try {
-        const { name, basePrice, mainImage, lensOption } = req.body;
+        const { name, basePrice, mainImage, lifestyleImage, lensOption } = req.body;
 
         // Create the product — lensOption is an array of embedded sub-documents
         // Each lens option has: name, description, priceUpcharge
@@ -49,6 +49,7 @@ const createProduct = async (req, res) => {
             name,
             basePrice,
             mainImage,
+            lifestyleImage,
             lensOption   // Mongoose will validate each sub-doc against lensOptions schema
         });
 

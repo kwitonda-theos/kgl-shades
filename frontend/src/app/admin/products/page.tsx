@@ -15,6 +15,7 @@ interface Product {
   name: string;
   basePrice: number;
   mainImage: string;
+  lifestyleImage?: string;
   lensOption: LensOption[];
   createdAt: string;
 }
@@ -23,6 +24,7 @@ interface ProductForm {
   name: string;
   basePrice: string;
   mainImage: string;
+  lifestyleImage: string;
   lensOption: LensOption[];
 }
 
@@ -32,6 +34,7 @@ const emptyForm: ProductForm = {
   name: "",
   basePrice: "",
   mainImage: "",
+  lifestyleImage: "",
   lensOption: [{ ...emptyLens }],
 };
 
@@ -47,6 +50,8 @@ export default function AdminProductsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadingLifestyle, setUploadingLifestyle] = useState(false);
+  const [lifestylePreview, setLifestylePreview] = useState<string | null>(null);
 
   const token = typeof window !== "undefined" ? localStorage.getItem("kgl-token") : null;
 
@@ -76,6 +81,7 @@ export default function AdminProductsPage() {
     setEditingProduct(null);
     setForm(emptyForm);
     setImagePreview(null);
+    setLifestylePreview(null);
     setError("");
     setModalOpen(true);
   };
@@ -93,8 +99,10 @@ export default function AdminProductsPage() {
             priceUpcharge: l.priceUpcharge,
           }))
         : [{ ...emptyLens }],
+      lifestyleImage: product.lifestyleImage || "",
     });
     setImagePreview(product.mainImage);
+    setLifestylePreview(product.lifestyleImage || null);
     setError("");
     setModalOpen(true);
   };
@@ -126,6 +134,36 @@ export default function AdminProductsPage() {
       setError(err instanceof Error ? err.message : "Upload failed");
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleLifestyleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingLifestyle(true);
+    const formData = new FormData();
+    formData.append("image", file);
+
+    try {
+      const res = await fetch("http://localhost:5000/api/admin/upload", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.message || "Upload failed");
+      }
+
+      const data = await res.json();
+      setForm((prev) => ({ ...prev, lifestyleImage: data.imagePath }));
+      setLifestylePreview(data.imagePath);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setUploadingLifestyle(false);
     }
   };
 
@@ -161,6 +199,7 @@ export default function AdminProductsPage() {
         name: form.name,
         basePrice: parseFloat(form.basePrice),
         mainImage: form.mainImage,
+        lifestyleImage: form.lifestyleImage,
         lensOption: form.lensOption.filter((l) => l.name.trim() !== ""),
       };
 
@@ -280,7 +319,7 @@ export default function AdminProductsPage() {
                     </div>
                   </td>
                   <td className="admin-table-name">{product.name}</td>
-                  <td>${product.basePrice}</td>
+                  <td>FRW {product.basePrice}</td>
                   <td>{product.lensOption?.length || 0}</td>
                   <td>{new Date(product.createdAt).toLocaleDateString()}</td>
                   <td>
@@ -342,7 +381,7 @@ export default function AdminProductsPage() {
                   />
                 </div>
                 <div className="admin-form-group" style={{ flex: 1 }}>
-                  <label className="admin-form-label">Base Price ($)</label>
+                  <label className="admin-form-label">Base Price (FRW)</label>
                   <input
                     className="admin-form-input"
                     type="number"
@@ -379,22 +418,65 @@ export default function AdminProductsPage() {
                       </button>
                     </div>
                   ) : (
-                    <label className="admin-upload-dropzone">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        className="admin-upload-input"
-                      />
-                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
-                      </svg>
-                      <span>{uploading ? "Uploading..." : "Click to upload image"}</span>
-                      <span className="admin-upload-hint">JPEG, PNG, WebP — Max 5MB</span>
-                    </label>
-                  )}
+                      <label className="admin-upload-dropzone">
+                        <input
+                          type="file"
+                          accept="image/*,.avif"
+                          onChange={handleImageUpload}
+                          className="admin-upload-input"
+                        />
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
+                        </svg>
+                        <span>{uploading ? "Uploading..." : "Click to upload main image"}</span>
+                        <span className="admin-upload-hint">JPEG, PNG, WebP, AVIF — Max 5MB</span>
+                      </label>
+                    )}
+                  </div>
                 </div>
-              </div>
+                
+                {/* Lifestyle Image Upload */}
+                <div className="admin-form-group">
+                  <label className="admin-form-label">Lifestyle Image</label>
+                  <div className="admin-upload-area">
+                    {lifestylePreview ? (
+                      <div className="admin-upload-preview">
+                        <Image
+                          src={lifestylePreview}
+                          alt="Lifestyle Preview"
+                          fill
+                          sizes="200px"
+                          style={{ objectFit: "cover" }}
+                        />
+                        <button
+                          className="admin-upload-remove"
+                          onClick={() => {
+                            setLifestylePreview(null);
+                            setForm((prev) => ({ ...prev, lifestyleImage: "" }));
+                          }}
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M18 6L6 18M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="admin-upload-dropzone">
+                        <input
+                          type="file"
+                          accept="image/*,.avif"
+                          onChange={handleLifestyleImageUpload}
+                          className="admin-upload-input"
+                        />
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
+                        </svg>
+                        <span>{uploadingLifestyle ? "Uploading..." : "Click to upload lifestyle image"}</span>
+                        <span className="admin-upload-hint">JPEG, PNG, WebP, AVIF — Max 5MB</span>
+                      </label>
+                    )}
+                  </div>
+                </div>
 
               {/* Lens Options */}
               <div className="admin-form-group">
@@ -423,7 +505,7 @@ export default function AdminProductsPage() {
                       <input
                         className="admin-form-input admin-form-input--small"
                         type="number"
-                        placeholder="$0"
+                        placeholder="FRW 0"
                         value={lens.priceUpcharge}
                         onChange={(e) => updateLensOption(idx, "priceUpcharge", parseFloat(e.target.value) || 0)}
                       />

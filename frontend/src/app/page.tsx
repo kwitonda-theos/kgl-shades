@@ -74,7 +74,7 @@ export default function HomePage() {
               {activeLifestyle.name}
             </p>
             <p className="lifestyle-sub">
-              Starting at ${activeLifestyle.basePrice}
+              Starting at FRW {activeLifestyle.basePrice}
             </p>
           </div>
         </div>
@@ -130,7 +130,7 @@ export default function HomePage() {
               {/* Bottom gradient info */}
               <div className="mobile-feed-info">
                 <h2 className="mobile-feed-name">{product.name}</h2>
-                <p className="mobile-feed-price">${product.basePrice}</p>
+                <p className="mobile-feed-price">FRW {product.basePrice}</p>
                 <p className="mobile-feed-desc">{product.description}</p>
               </div>
             </div>

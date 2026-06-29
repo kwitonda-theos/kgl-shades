@@ -164,7 +164,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                             <p className="cart-item-lens">
                               {item.selectedLens.name} Lens
                               {item.selectedLens.priceUpcharge > 0 &&
-                                ` (+$${item.selectedLens.priceUpcharge})`}
+                                ` (+FRW ${item.selectedLens.priceUpcharge})`}
                             </p>
                           </div>
                           <button
@@ -225,7 +225,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                           </div>
 
                           {/* Line Total */}
-                          <p className="cart-item-total">${lineTotal}</p>
+                          <p className="cart-item-total">FRW {lineTotal}</p>
                         </div>
                       </div>
                     </div>
@@ -237,7 +237,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
               <div className="cart-drawer-footer">
                 <div className="cart-footer-row">
                   <span className="cart-footer-label">Subtotal</span>
-                  <span className="cart-footer-value">${cartTotal}</span>
+                  <span className="cart-footer-value">FRW {cartTotal}</span>
                 </div>
                 <p className="cart-footer-note">
                   Shipping & taxes calculated at checkout
@@ -332,7 +332,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                             <p className="cart-item-lens">
                               {item.selectedLens.name} Lens
                               {item.selectedLens.priceUpcharge > 0 &&
-                                ` (+$${item.selectedLens.priceUpcharge})`}
+                                ` (+FRW ${item.selectedLens.priceUpcharge})`}
                             </p>
                           </div>
                           <button
@@ -390,7 +390,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                               +
                             </button>
                           </div>
-                          <p className="cart-item-total">${lineTotal}</p>
+                          <p className="cart-item-total">FRW {lineTotal}</p>
                         </div>
                       </div>
                     </div>
@@ -402,7 +402,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
               <div className="cart-drawer-footer">
                 <div className="cart-footer-row">
                   <span className="cart-footer-label">Subtotal</span>
-                  <span className="cart-footer-value">${cartTotal}</span>
+                  <span className="cart-footer-value">FRW {cartTotal}</span>
                 </div>
                 <p className="cart-footer-note">
                   Shipping & taxes calculated at checkout

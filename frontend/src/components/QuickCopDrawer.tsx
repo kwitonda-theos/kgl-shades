@@ -119,7 +119,7 @@ export default function QuickCopDrawer({
                 Added to Cart
               </span>
             ) : (
-              <span>ADD TO CART — ${totalPrice}</span>
+              <span>ADD TO CART — FRW {totalPrice}</span>
             )}
           </button>
         </div>
@@ -151,7 +151,7 @@ export default function QuickCopDrawer({
             </div>
             <div>
               <h2 className="drawer-product-name">{product.name}</h2>
-              <p className="drawer-mobile-price">${product.basePrice}</p>
+              <p className="drawer-mobile-price">FRW {product.basePrice}</p>
             </div>
           </div>
 
@@ -175,7 +175,7 @@ export default function QuickCopDrawer({
                 Added to Cart
               </span>
             ) : (
-              <span>ADD TO CART — ${totalPrice}</span>
+              <span>ADD TO CART — FRW {totalPrice}</span>
             )}
           </button>
         </div>

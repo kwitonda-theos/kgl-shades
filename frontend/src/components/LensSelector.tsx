@@ -35,7 +35,7 @@ export default function LensSelector({
       <div className="price-display">
         <span className="price-label">Total</span>
         <span className="price-value" key={totalPrice}>
-          ${totalPrice}
+          FRW {totalPrice}
         </span>
       </div>
 
@@ -58,7 +58,7 @@ export default function LensSelector({
                 </div>
                 <span className="lens-option-name">{lens.name}</span>
                 {lens.priceUpcharge > 0 && (
-                  <span className="lens-upcharge">+${lens.priceUpcharge}</span>
+                  <span className="lens-upcharge">+FRW {lens.priceUpcharge}</span>
                 )}
                 {lens.priceUpcharge === 0 && (
                   <span className="lens-included">Included</span>
