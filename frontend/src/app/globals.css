@@ -3119,34 +3119,38 @@ img {
   letter-spacing: 0.05em;
 }
 
-/* Grid — always 2 columns, fills remaining height, centered */
+/* Container for cards — centered, allowing natural aspect ratio */
 .collection-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0px;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;         /* let cards fill vertical space */
+  gap: 0px;                    /* add a small gap between the 2 cards */
   flex: 1;
   overflow: hidden;
-  max-width: 1100px;
+  max-width: 1400px;
   width: 100%;
-  margin: 0px  auto;
-  padding: 0 24px 14px;
+  margin: 0 auto;
+  padding: 0 24px 24px;
   box-sizing: border-box;
   min-height: 0;
 }
 
-/* Collection card — height driven by the grid row, not aspect-ratio */
+/* Collection card — perfectly scaled vertical previews */
 .collection-card {
   position: relative;
+  aspect-ratio: 3 / 4;        /* classic vertical portrait ratio */
+  height: 100%;               /* fill the available height */
+  width: auto;                /* let width adjust to aspect ratio */
+  max-width: 100%;
   overflow: hidden;
   background: var(--bg-card);
   border: none;
   cursor: pointer;
   display: block;
-  width: 100%;
-  height: 100%;               /* fills the grid cell */
   padding: 0;
   outline: none;
-  /* border-radius: var(--radius-md); */
+  
+  flex-shrink: 1;             /* allow shrinking on small screens */
 }
 
 .collection-card-image-wrapper {
