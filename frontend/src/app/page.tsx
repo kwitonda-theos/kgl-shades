@@ -1,23 +1,62 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import Image from "next/image";
 import { SunglassesProduct } from "@/types/product";
-import { products } from "@/data/mockData";
+import { products as initialMockProducts } from "@/data/mockData";
 import Header from "@/components/Header";
 import ProductCard from "@/components/ProductCard";
 import QuickCopDrawer from "@/components/QuickCopDrawer";
 
 export default function HomePage() {
+  const [products, setProducts] = useState<SunglassesProduct[]>(initialMockProducts);
   const [activeLifestyle, setActiveLifestyle] = useState<SunglassesProduct>(
-    products[0]
+    initialMockProducts[0]
   );
   const [drawerProduct, setDrawerProduct] = useState<SunglassesProduct | null>(
     null
   );
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [mobileSelectedProduct, setMobileSelectedProduct] =
-    useState<SunglassesProduct>(products[0]);
+    useState<SunglassesProduct>(initialMockProducts[0]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/api/products");
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.length > 0) {
+            const mappedProducts: SunglassesProduct[] = data.map((p: any) => ({
+              id: p._id,
+              slug: p.name.toLowerCase().replace(/ /g, "-"),
+              name: p.name,
+              basePrice: p.basePrice,
+              description: p.description || "Engineered for those who move in darkness",
+              mainImage: p.mainImage,
+              lifestyleImage: p.lifestyleImage,
+              galleryImages: p.galleryImages || [p.mainImage],
+              lensOptions: p.lensOption?.length > 0 ? p.lensOption.map((l: any) => ({
+                id: l._id || l.name,
+                name: l.name,
+                description: l.description,
+                priceUpcharge: l.priceUpcharge,
+              })) : [{ id: "standard", name: "Standard", description: "Standard Lens", priceUpcharge: 0 }],
+            }));
+            setProducts(mappedProducts);
+            setActiveLifestyle(mappedProducts[0]);
+            setMobileSelectedProduct(mappedProducts[0]);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch products", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProducts();
+  }, []);
 
   const handleProductHover = useCallback((product: SunglassesProduct) => {
     setActiveLifestyle(product);
@@ -37,6 +76,28 @@ export default function HomePage() {
     setDrawerProduct(mobileSelectedProduct);
     setIsDrawerOpen(true);
   }, [mobileSelectedProduct]);
+
+  if (loading && products === initialMockProducts) {
+    return (
+      <>
+        <Header />
+        <main className="desktop-layout" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+          <p>Loading collection...</p>
+        </main>
+      </>
+    );
+  }
+
+  if (!products || products.length === 0) {
+    return (
+      <>
+        <Header />
+        <main className="desktop-layout" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+          <p>No products found.</p>
+        </main>
+      </>
+    );
+  }
 
   return (
     <>
