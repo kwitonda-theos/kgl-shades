@@ -239,32 +239,33 @@ export default function HomePage() {
   // ─── BROWSE VIEW (existing split-screen) ─────────────────────
   return (
     <>
-      <Header />
-
-      {/* Back breadcrumb */}
-      <div className="collection-breadcrumb">
-        <button
-          className="collection-back-btn"
-          onClick={handleBackToPicker}
-          id="back-to-collections"
-        >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path d="M19 12H5M12 19l-7-7 7-7" />
-          </svg>
-          Collections
-        </button>
-        <span className="collection-breadcrumb-sep">›</span>
-        <span className="collection-breadcrumb-current">
-          {selectedCollection.name}
-        </span>
-      </div>
+      <Header 
+        leftNode={
+          <div className="collection-breadcrumb">
+            <button
+              className="collection-back-btn"
+              onClick={handleBackToPicker}
+              id="back-to-collections"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
+              Collections
+            </button>
+            <span className="collection-breadcrumb-sep">›</span>
+            <span className="collection-breadcrumb-current">
+              {selectedCollection.name}
+            </span>
+          </div>
+        }
+      />
 
       {/* ═══════════════════════════════════════════════
           DESKTOP LAYOUT — Split-Screen Street
@@ -298,7 +299,7 @@ export default function HomePage() {
               {activeLifestyle?.name}
             </p>
             <p className="lifestyle-sub">
-              Starting at FRW {activeLifestyle?.basePrice}
+              Starting at {activeLifestyle?.basePrice} FRW
             </p>
           </div>
         </div>
@@ -355,7 +356,7 @@ export default function HomePage() {
               {/* Bottom gradient info */}
               <div className="mobile-feed-info">
                 <h2 className="mobile-feed-name">{product.name}</h2>
-                <p className="mobile-feed-price">FRW {product.basePrice}</p>
+                <p className="mobile-feed-price">{product.basePrice} FRW </p>
                 <p className="mobile-feed-desc">{product.description}</p>
               </div>
             </div>

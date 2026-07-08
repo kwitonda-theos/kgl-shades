@@ -13,7 +13,11 @@ interface UserData {
   role?: string;
 }
 
-export default function Header() {
+interface HeaderProps {
+  leftNode?: React.ReactNode;
+}
+
+export default function Header({ leftNode }: HeaderProps = {}) {
   const { itemCount } = useCart();
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [user, setUser] = useState<UserData | null>(null);
@@ -86,15 +90,18 @@ export default function Header() {
   return (
     <>
       <header className="site-header" id="site-header">
-        {/* Logo */}
-        <a href="/" className="site-logo" aria-label="KGL Shades Home">
-          <span className="logo-kgl">KGL</span>
-          <span className="logo-shades">SHADES</span>
-        </a>
+        <div className="header-left">
+          {/* Logo */}
+          <a href="/" className="site-logo" aria-label="KGL Shades Home">
+            <span className="logo-kgl">KGL</span>
+            <span className="logo-shades">SHADES</span>
+          </a>
+          {leftNode}
+        </div>
 
         {/* Navigation */}
         <nav className="site-nav" aria-label="Main navigation">
-          <a href="/" className="nav-link">Collection</a>
+          
           <a href="/" className="nav-link">About</a>
         </nav>
 
