@@ -18,9 +18,8 @@ const PORT = process.env.PORT || 5000; // Fixed: was Process.env (capital P caus
 // Connect to MongoDB Atlas before the server starts taking requests
 connectDB();
 
-// ── Global Middleware ──────────────────────────────────────────
-// Allow requests from the React frontend running on port 3000
-app.use(cors({ origin: 'http://localhost:3000' }));
+// ── Global Middleware ─────────────────────────────────────────
+app.use(cors()); // Allow all origins for dev
 // Parse incoming JSON request bodies (req.body)
 app.use(express.json());
 

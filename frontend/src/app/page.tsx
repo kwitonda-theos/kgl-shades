@@ -82,7 +82,7 @@ export default function HomePage() {
   useEffect(() => {
     const fetchCollections = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/collections");
+        const res = await fetch("/api/collections");
         if (res.ok) {
           const data: RawCollection[] = await res.json();
           setCollections(data);

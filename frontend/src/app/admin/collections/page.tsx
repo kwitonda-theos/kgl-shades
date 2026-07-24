@@ -52,7 +52,7 @@ export default function AdminCollectionsPage() {
 
   const fetchCollections = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/collections");
+      const res = await fetch("/api/collections");
       if (res.ok) {
         const data = await res.json();
         setCollections(data);
@@ -66,7 +66,7 @@ export default function AdminCollectionsPage() {
 
   const fetchProducts = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/products");
+      const res = await fetch("/api/products");
       if (res.ok) {
         const data = await res.json();
         setAllProducts(data);
@@ -115,7 +115,7 @@ export default function AdminCollectionsPage() {
     formData.append("image", file);
 
     try {
-      const res = await fetch("http://localhost:5000/api/admin/upload", {
+      const res = await fetch("/api/admin/upload", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -159,8 +159,8 @@ export default function AdminCollectionsPage() {
       };
 
       const url = editingCollection
-        ? `http://localhost:5000/api/collections/${editingCollection._id}`
-        : "http://localhost:5000/api/collections";
+        ? `/api/collections/${editingCollection._id}`
+        : "/api/collections";
 
       const res = await fetch(url, {
         method: editingCollection ? "PUT" : "POST",
@@ -188,7 +188,7 @@ export default function AdminCollectionsPage() {
   const handleDelete = async (collectionId: string) => {
     try {
       const res = await fetch(
-        `http://localhost:5000/api/collections/${collectionId}`,
+        `/api/collections/${collectionId}`,
         {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },

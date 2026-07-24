@@ -60,7 +60,7 @@ export default function AdminProductsPage() {
 
   const fetchProducts = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/products");
+      const res = await fetch("/api/products");
       if (res.ok) {
         const data = await res.json();
         setProducts(data);
@@ -120,7 +120,7 @@ export default function AdminProductsPage() {
     formData.append("image", file);
 
     try {
-      const res = await fetch("http://localhost:5000/api/admin/upload", {
+      const res = await fetch("/api/admin/upload", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -150,7 +150,7 @@ export default function AdminProductsPage() {
     formData.append("image", file);
 
     try {
-      const res = await fetch("http://localhost:5000/api/admin/upload", {
+      const res = await fetch("/api/admin/upload", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -209,8 +209,8 @@ export default function AdminProductsPage() {
       };
 
       const url = editingProduct
-        ? `http://localhost:5000/api/products/${editingProduct._id}`
-        : "http://localhost:5000/api/products";
+        ? `/api/products/${editingProduct._id}`
+        : "/api/products";
 
       const res = await fetch(url, {
         method: editingProduct ? "PUT" : "POST",
@@ -237,7 +237,7 @@ export default function AdminProductsPage() {
 
   const handleDelete = async (productId: string) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/products/${productId}`, {
+      const res = await fetch(`/api/products/${productId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });

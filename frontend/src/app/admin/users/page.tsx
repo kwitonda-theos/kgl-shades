@@ -43,7 +43,7 @@ export default function AdminUsersPage() {
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/users");
+      const res = await fetch("/api/users");
       if (res.ok) {
         const data = await res.json();
         setUsers(data);
@@ -103,7 +103,7 @@ export default function AdminUsersPage() {
           body.passwordHash = form.passwordHash;
         }
 
-        const res = await fetch(`http://localhost:5000/api/users/${editingUser._id}`, {
+        const res = await fetch(`/api/users/${editingUser._id}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -118,7 +118,7 @@ export default function AdminUsersPage() {
         }
       } else {
         // Create user
-        const res = await fetch("http://localhost:5000/api/users", {
+        const res = await fetch("/api/users", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -147,7 +147,7 @@ export default function AdminUsersPage() {
 
   const handleDelete = async (userId: string) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/users/${userId}`, {
+      const res = await fetch(`/api/users/${userId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
