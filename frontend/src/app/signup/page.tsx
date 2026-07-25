@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import s from "./signup.module.css";
 
-export default function SignupPage() {
+function SignupForm() {
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect");
 
@@ -23,7 +23,6 @@ export default function SignupPage() {
     e.preventDefault();
     setError("");
 
-    // Client-side validation
     if (password !== confirmPassword) {
       setError("Passwords do not match");
       return;
@@ -36,7 +35,6 @@ export default function SignupPage() {
 
     setIsLoading(true);
 
-    // TODO: Replace with actual API call to your backend
     try {
       const res = await fetch("/api/users", {
         method: "POST",
@@ -46,7 +44,7 @@ export default function SignupPage() {
           lastName,
           email,
           phone: parseInt(phone),
-          passwordHash: password, // In production, hash on the backend
+          passwordHash: password,
         }),
       });
 
@@ -57,7 +55,6 @@ export default function SignupPage() {
 
       const data = await res.json();
 
-      // Store the JWT token and user info in localStorage
       localStorage.setItem("kgl-token", data.token);
       localStorage.setItem("kgl-user", JSON.stringify({
         _id: data._id,
@@ -68,7 +65,6 @@ export default function SignupPage() {
         role: data.role,
       }));
 
-      // Successful signup — redirect based on where they came from
       if (redirectTo === "checkout") {
         window.location.href = "/?openCart=true";
       } else {
@@ -85,9 +81,6 @@ export default function SignupPage() {
 
   return (
     <div className={s.page}>
-      {/* Subtle ambient glow */}
-      {/* <div className={s.ambient} /> */}
-
       {/* Go Back Button */}
       <Link href="/" className={s.backButton} aria-label="Go back to Home">
         <svg
@@ -213,7 +206,7 @@ export default function SignupPage() {
               </label>
               <div className={s.inputWrapper}>
                 <svg className={s.inputIcon} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.19 12a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 3.11 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.09 8.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21 16.92z" />
                 </svg>
                 <input
                   type="tel"
@@ -339,5 +332,13 @@ export default function SignupPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense>
+      <SignupForm />
+    </Suspense>
   );
 }
