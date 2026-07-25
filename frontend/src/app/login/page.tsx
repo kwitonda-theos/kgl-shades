@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import s from "./login.module.css";
 
-export default function LoginPage() {
+function LoginForm() {
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect");
 
@@ -20,7 +20,6 @@ export default function LoginPage() {
     setError("");
     setIsLoading(true);
 
-    // TODO: Replace with actual API call to your backend
     try {
       const res = await fetch("/api/users/login", {
         method: "POST",
@@ -35,7 +34,6 @@ export default function LoginPage() {
 
       const data = await res.json();
 
-      // Store the JWT token and user info in localStorage
       localStorage.setItem("kgl-token", data.token);
       localStorage.setItem("kgl-user", JSON.stringify({
         _id: data._id,
@@ -46,7 +44,6 @@ export default function LoginPage() {
         role: data.role,
       }));
 
-      // Successful login — redirect to where they came from or home
       if (redirectTo === "checkout") {
         window.location.href = "/?openCart=true";
       } else {
@@ -63,9 +60,6 @@ export default function LoginPage() {
 
   return (
     <div className={s.page}>
-      {/* Subtle ambient glow behind the card */}
-      {/* <div className={s.ambient} /> */}
-
       {/* Go Back Button */}
       <Link href="/" className={s.backButton} aria-label="Go back to Home">
         <svg
@@ -86,7 +80,7 @@ export default function LoginPage() {
       </Link>
 
       <div className={s.container}>
-        {/* Logo — links back to home */}
+        {/* Logo */}
         <Link href="/" className={s.logo} aria-label="Back to KGL Shades">
           <span className={s.logoMain}>KGL</span>
           <span className={s.logoSub}>SHADES</span>
@@ -251,5 +245,13 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }
