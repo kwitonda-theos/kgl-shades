@@ -3325,6 +3325,7 @@ img {
   }
 
   .collection-grid {
+    display: grid;
     grid-template-columns: 1fr;
     gap: 3px;
     padding: 0 0 24px;
@@ -3333,8 +3334,9 @@ img {
   }
 
   .collection-card {
-    aspect-ratio: 4 / 3;
-    height: auto;
+    height: 0;
+    width: 100%;
+    padding-bottom: 75%; /* 4:3 aspect ratio */
     border-radius: 0;
   }
 
