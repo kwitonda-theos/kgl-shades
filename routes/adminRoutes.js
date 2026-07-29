@@ -2,37 +2,29 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const adminAuth = require('../middleware/adminAuth');
 const { getAnalytics } = require('../controllers/adminController');
 
+// ── Cloudinary configuration ──────────────────────────────────────
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
 // ── Multer config for product image uploads ────────────────────
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        // Save uploads to the frontend's public/images folder
-        // so Next.js can serve them as static files
-        cb(null, path.join(__dirname, '..', 'frontend', 'public', 'images'));
-    },
-    filename: (req, file, cb) => {
-        // Create unique filename: product-<timestamp>.<ext>
-        const ext = path.extname(file.originalname);
-        const name = `product-${Date.now()}${ext}`;
-        cb(null, name);
+const storage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+        folder: 'kgl-shades',
+        allowed_formats: ['jpeg', 'png', 'jpg', 'webp', 'gif', 'avif']
     }
 });
 
-const fileFilter = (req, file, cb) => {
-    // Only allow image files
-    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif'];
-    if (allowed.includes(file.mimetype)) {
-        cb(null, true);
-    } else {
-        cb(new Error('Only image files (JPEG, PNG, WebP, GIF, AVIF) are allowed'), false);
-    }
-};
-
 const upload = multer({
     storage,
-    fileFilter,
     limits: { fileSize: 5 * 1024 * 1024 } // 5MB max
 });
 
@@ -49,8 +41,8 @@ router.post('/upload', upload.single('image'), (req, res) => {
         return res.status(400).json({ message: 'No image file provided' });
     }
 
-    // Return the path relative to the public folder
-    const imagePath = `/images/${req.file.filename}`;
+    // req.file.path contains the secure URL returned by Cloudinary
+    const imagePath = req.file.path;
     res.status(200).json({ imagePath });
 });
 
