@@ -25,6 +25,12 @@ const orderSchema = new mongoose.Schema({
     enum: ['PENDING', 'PAID', 'SHIPPED', 'CANCELLED'] // Good practice to restrict statuses
   },
   
+  // Payment tracking
+  txRef: { type: String, unique: true, sparse: true },
+  phone: { type: String },
+  paymentProvider: { type: String, default: 'flutterwave' },
+  flutterwaveId: { type: String },
+
   // Relation
   user: { 
     type: mongoose.Schema.Types.ObjectId, 

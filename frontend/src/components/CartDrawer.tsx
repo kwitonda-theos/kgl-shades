@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import Image from "next/image";
 import { useCart } from "@/context/CartContext";
+import CheckoutModal from "./CheckoutModal";
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -10,8 +11,9 @@ interface CartDrawerProps {
 }
 
 export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
-  const { items, itemCount, cartTotal, updateQuantity, removeFromCart, clearCart } =
+  const { items, itemCount, cartTotal, updateQuantity, removeFromCart } =
     useCart();
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
 
   // Lock body scroll when drawer is open
   useEffect(() => {
@@ -25,7 +27,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     };
   }, [isOpen]);
 
-  const handleCheckout = () => {
+  const handleCheckout = useCallback(() => {
     // Check if user is logged in
     const token = localStorage.getItem("kgl-token");
     if (!token) {
@@ -34,44 +36,14 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
       return;
     }
 
-    // User is logged in — place the order
-    placeOrder(token);
-  };
+    // User is logged in — open the checkout modal
+    setCheckoutOpen(true);
+  }, []);
 
-  const placeOrder = async (token: string) => {
-    try {
-      const orderItems = items.map((item) => ({
-        product: item.product.id,
-        lensOptionId: item.selectedLens.id,
-        quantity: item.quantity,
-      }));
-
-      const res = await fetch("/api/orders", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          items: orderItems,
-          totalAmount: cartTotal,
-        }),
-      });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        alert(errData.message || "Failed to place order");
-        return;
-      }
-
-      // Order placed successfully
-      clearCart();
-      onClose();
-      alert("Order placed successfully! ");
-    } catch {
-      alert("Something went wrong placing your order. Please try again.");
-    }
-  };
+  const handleCheckoutSuccess = useCallback(() => {
+    setCheckoutOpen(false);
+    onClose();
+  }, [onClose]);
 
   return (
     <>
@@ -419,6 +391,13 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
           )}
         </div>
       </div>
+
+      {/* Checkout Modal */}
+      <CheckoutModal
+        isOpen={checkoutOpen}
+        onClose={() => setCheckoutOpen(false)}
+        onSuccess={handleCheckoutSuccess}
+      />
     </>
   );
 }

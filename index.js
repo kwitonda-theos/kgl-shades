@@ -11,6 +11,7 @@ const reviewRoutes = require('./routes/reviewRoutes');
 const waitlistRoutes = require('./routes/waitlistRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const collectionRoutes = require('./routes/collectionRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000; // Fixed: was Process.env (capital P caused a crash)
@@ -33,6 +34,7 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/waitlist', waitlistRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/collections', collectionRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // ── Health Check ───────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
