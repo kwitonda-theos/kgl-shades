@@ -65,6 +65,30 @@ function SignupForm() {
         role: data.role,
       }));
 
+      // Sync local cart and theme to the new backend account
+      try {
+        const localCartRaw = localStorage.getItem("kgl-cart");
+        const localTheme = localStorage.getItem("kgl-theme");
+        
+        const payload: any = {};
+        if (localCartRaw) {
+          payload.cart = JSON.parse(localCartRaw);
+        }
+        if (localTheme) {
+          payload.theme = localTheme;
+        }
+
+        if (Object.keys(payload).length > 0) {
+          await fetch(`/api/users/${data._id}/preferences`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+        }
+      } catch (e) {
+        // ignore
+      }
+
       if (redirectTo === "checkout") {
         window.location.href = "/?openCart=true";
       } else {

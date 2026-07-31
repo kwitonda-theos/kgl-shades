@@ -17,6 +17,45 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Load cart from localStorage on mount
+  React.useEffect(() => {
+    try {
+      const savedCart = localStorage.getItem("kgl-cart");
+      if (savedCart) {
+        setItems(JSON.parse(savedCart));
+      }
+    } catch (e) {
+      console.error("Failed to load cart from local storage", e);
+    }
+    setIsInitialized(true);
+  }, []);
+
+  // Save cart to localStorage and backend whenever items change
+  React.useEffect(() => {
+    if (isInitialized) {
+      localStorage.setItem("kgl-cart", JSON.stringify(items));
+
+      // Sync to backend if logged in
+      const userStr = localStorage.getItem("kgl-user");
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          if (user && user._id) {
+            // We use a debounce or just direct fetch. Since it's infrequent, direct fetch is okay
+            fetch(`/api/users/${user._id}/preferences`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ cart: items })
+            }).catch(() => {}); // ignore network errors
+          }
+        } catch (e) {
+          // invalid user JSON
+        }
+      }
+    }
+  }, [items, isInitialized]);
 
   const addToCart = useCallback(
     (product: SunglassesProduct, lens: LensOption) => {
@@ -86,12 +125,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     0
   );
 
+  // Avoid hydration mismatch by not rendering the context values until initialized
+  // or return children normally but empty cart initially
   return (
     <CartContext.Provider
       value={{
-        items,
-        itemCount,
-        cartTotal,
+        items: isInitialized ? items : [],
+        itemCount: isInitialized ? itemCount : 0,
+        cartTotal: isInitialized ? cartTotal : 0,
         addToCart,
         removeFromCart,
         updateQuantity,

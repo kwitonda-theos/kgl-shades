@@ -34,6 +34,53 @@ function LoginForm() {
 
       const data = await res.json();
 
+      // ── MERGE CARTS ──
+      const localCartRaw = localStorage.getItem("kgl-cart");
+      let dbCart = data.cart || [];
+      
+      // Map DB cart format (product._id) to frontend format (product.id)
+      if (dbCart.length > 0) {
+        dbCart = dbCart.map((item: any) => ({
+          product: { ...item.product, id: item.product._id },
+          selectedLens: item.selectedLens,
+          quantity: item.quantity
+        }));
+      }
+
+      let mergedCart = [...dbCart];
+
+      if (localCartRaw) {
+        try {
+          const localCart = JSON.parse(localCartRaw);
+          // Simple merge: append local items if they don't already exist
+          localCart.forEach((localItem: any) => {
+            const exists = mergedCart.find(
+              (dbItem: any) => 
+                dbItem.product.id === localItem.product.id && 
+                dbItem.selectedLens.id === localItem.selectedLens.id
+            );
+            if (!exists) {
+              mergedCart.push(localItem);
+            }
+          });
+        } catch (e) {
+          console.error("Cart merge failed", e);
+        }
+      }
+
+      // Save merged cart so CartContext picks it up on reload
+      localStorage.setItem("kgl-cart", JSON.stringify(mergedCart));
+
+      // ── APPLY THEME ──
+      if (data.theme) {
+        localStorage.setItem("kgl-theme", data.theme);
+        if (data.theme === "light") {
+          document.documentElement.setAttribute("data-theme", "light");
+        } else {
+          document.documentElement.removeAttribute("data-theme");
+        }
+      }
+
       localStorage.setItem("kgl-token", data.token);
       localStorage.setItem("kgl-user", JSON.stringify({
         _id: data._id,
@@ -43,6 +90,17 @@ function LoginForm() {
         phone: data.phone,
         role: data.role,
       }));
+
+      // Fire a background sync of the merged cart before redirecting
+      try {
+        await fetch(`/api/users/${data._id}/preferences`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cart: mergedCart })
+        });
+      } catch (e) {
+        // ignore
+      }
 
       if (redirectTo === "checkout") {
         window.location.href = "/?openCart=true";

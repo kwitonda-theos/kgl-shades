@@ -103,6 +103,14 @@ export default function AdminLayout({
     } else {
       document.documentElement.removeAttribute("data-theme");
     }
+
+    if (user && user._id) {
+      fetch(`/api/users/${user._id}/preferences`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ theme: next })
+      }).catch(() => {});
+    }
   };
 
   if (checking) {

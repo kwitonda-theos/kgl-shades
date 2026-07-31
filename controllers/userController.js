@@ -98,6 +98,8 @@ const createUser = async (req, res) => {
             lastName: user.lastName,
             phone: user.phone,
             role: user.role,
+            theme: user.theme,
+            cart: user.cart,
             token
         });
     } catch (error) {
@@ -119,8 +121,8 @@ const loginUser = async (req, res) => {
             return res.status(400).json({ message: 'Email and password are required' });
         }
 
-        // Find the user by email
-        const user = await User.findOne({ email });
+        // Find the user by email and populate their cart products
+        const user = await User.findOne({ email }).populate('cart.product');
         if (!user) {
             return res.status(401).json({ message: 'Invalid email or password' });
         }
@@ -142,6 +144,8 @@ const loginUser = async (req, res) => {
             lastName: user.lastName,
             phone: user.phone,
             role: user.role,
+            theme: user.theme,
+            cart: user.cart,
             token
         });
     } catch (error) {
@@ -164,6 +168,36 @@ const updateUser = async (req, res) => {
             req.body,
             { new: true, runValidators: true }
         ).select('-passwordHash');
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.status(200).json(user);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// ============================================================
+// @desc    Update user preferences (cart & theme)
+// @route   PUT /api/users/:id/preferences
+// @access  Public
+// ============================================================
+const updateUserPreferences = async (req, res) => {
+    try {
+        const { theme, cart } = req.body;
+        
+        // Build the update object dynamically
+        const updateData = {};
+        if (theme !== undefined) updateData.theme = theme;
+        if (cart !== undefined) updateData.cart = cart;
+
+        const user = await User.findByIdAndUpdate(
+            req.params.id,
+            { $set: updateData },
+            { new: true, runValidators: true }
+        ).populate('cart.product').select('-passwordHash');
 
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
@@ -202,5 +236,6 @@ module.exports = {
     createUser,
     loginUser,
     updateUser,
-    deleteUser
+    deleteUser,
+    updateUserPreferences
 };

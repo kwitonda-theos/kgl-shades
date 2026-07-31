@@ -62,6 +62,15 @@ export default function Header({ leftNode }: HeaderProps = {}) {
     } else {
       document.documentElement.removeAttribute("data-theme");
     }
+
+    // Sync theme to backend if logged in
+    if (user && user._id) {
+      fetch(`/api/users/${user._id}/preferences`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ theme: next })
+      }).catch(() => {});
+    }
   };
 
   const handleLogout = () => {

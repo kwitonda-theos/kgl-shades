@@ -128,7 +128,7 @@ const verifyPayment = async (req, res) => {
         // We need the flutterwave transaction ID. If we have it, verify directly.
         // Otherwise, fetch by tx_ref via the Flutterwave API
         try {
-            const response = await getFlw().Transaction.verify_by_tx_ref({ tx_ref: txRef });
+            const response = await getFlw().Transaction.verify_by_tx({ tx_ref: txRef });
 
             if (response?.data?.status === 'successful' &&
                 response.data.currency === 'RWF' &&

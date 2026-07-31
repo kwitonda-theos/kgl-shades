@@ -92,10 +92,11 @@ export default function CheckoutModal({
   const handlePay = async () => {
     setError("");
 
-    // Basic phone validation for Rwanda numbers
+    // Basic phone validation for Rwanda numbers (MTN & Airtel)
+    // Supports: 078..., 079..., 073..., 072... OR 78..., 79... etc OR 25078...
     const cleanPhone = phone.replace(/\s/g, "");
-    if (!/^(07[2-9]\d{7}|2507[2-9]\d{7})$/.test(cleanPhone)) {
-      setError("Enter a valid Rwandan phone number (e.g. 078XXXXXXX)");
+    if (!/^(0?7[2389]\d{7}|2507[2389]\d{7})$/.test(cleanPhone)) {
+      setError("Enter a valid Rwandan number (e.g. 78XXXXXXX)");
       return;
     }
 
@@ -185,24 +186,24 @@ export default function CheckoutModal({
               </svg>
             </button>
 
-            <div className="checkout-header">
-              <div className="checkout-icon">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <div className="checkout-header" style={{ marginBottom: "16px" }}>
+              <div className="checkout-icon" style={{ width: "48px", height: "48px", marginBottom: "12px" }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                   <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
                   <line x1="12" y1="18" x2="12.01" y2="18" />
                 </svg>
               </div>
-              <h2 className="checkout-title">Mobile Money</h2>
-              <p className="checkout-subtitle">
+              <h2 className="checkout-title" style={{ fontSize: "18px" }}>Mobile Money</h2>
+              <p className="checkout-subtitle" style={{ marginTop: "4px" }}>
                 Pay with MTN MoMo or Airtel Money
               </p>
             </div>
 
             {/* Order Summary */}
-            <div className="checkout-summary">
+            <div className="checkout-summary" style={{ marginBottom: "20px" }}>
               <div className="checkout-summary-row">
                 <span>{items.length} {items.length === 1 ? "item" : "items"}</span>
-                <span className="checkout-summary-total">FRW {cartTotal}</span>
+                <span className="checkout-summary-total">FRW {cartTotal.toLocaleString()}</span>
               </div>
             </div>
 
