@@ -1,4 +1,8 @@
 const Collection = require('../models/Collection');
+const { getOrSet, invalidatePrefix } = require('../middleware/cache');
+
+// Cache TTL for collections (5 minutes)
+const COLLECTION_TTL = 300;
 
 // Helper to generate a slug from a name
 const toSlug = (name) =>
@@ -11,8 +15,15 @@ const toSlug = (name) =>
 // ============================================================
 const getCollections = async (req, res) => {
     try {
-        const collections = await Collection.find({}).populate('products');
-        res.status(200).json(collections);
+        const { data, fromCache } = await getOrSet(
+            'collections:all',
+            () => Collection.find({}).populate('products'),
+            COLLECTION_TTL
+        );
+
+        res.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
+        res.set('X-Cache', fromCache ? 'HIT' : 'MISS');
+        res.status(200).json(data);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -25,11 +36,19 @@ const getCollections = async (req, res) => {
 // ============================================================
 const getCollectionById = async (req, res) => {
     try {
-        const collection = await Collection.findById(req.params.id).populate('products');
-        if (!collection) {
+        const { data, fromCache } = await getOrSet(
+            `collections:${req.params.id}`,
+            () => Collection.findById(req.params.id).populate('products'),
+            COLLECTION_TTL
+        );
+
+        if (!data) {
             return res.status(404).json({ message: 'Collection not found' });
         }
-        res.status(200).json(collection);
+
+        res.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
+        res.set('X-Cache', fromCache ? 'HIT' : 'MISS');
+        res.status(200).json(data);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -61,6 +80,11 @@ const createCollection = async (req, res) => {
 
         // Populate products before returning
         await collection.populate('products');
+
+        // Invalidate collection and product caches
+        invalidatePrefix('collections:');
+        invalidatePrefix('products:');
+
         res.status(201).json(collection);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -92,6 +116,11 @@ const updateCollection = async (req, res) => {
         if (!collection) {
             return res.status(404).json({ message: 'Collection not found' });
         }
+
+        // Invalidate collection and product caches
+        invalidatePrefix('collections:');
+        invalidatePrefix('products:');
+
         res.status(200).json(collection);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -109,6 +138,11 @@ const deleteCollection = async (req, res) => {
         if (!collection) {
             return res.status(404).json({ message: 'Collection not found' });
         }
+
+        // Invalidate collection and product caches
+        invalidatePrefix('collections:');
+        invalidatePrefix('products:');
+
         res.status(200).json({ message: 'Collection deleted successfully' });
     } catch (error) {
         res.status(500).json({ message: error.message });

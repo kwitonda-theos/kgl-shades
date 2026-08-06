@@ -1,4 +1,8 @@
 const Product = require('../models/Products');
+const { getOrSet, invalidatePrefix } = require('../middleware/cache');
+
+// Cache TTL for products (5 minutes)
+const PRODUCT_TTL = 300;
 
 // ============================================================
 // @desc    Get all products
@@ -7,9 +11,15 @@ const Product = require('../models/Products');
 // ============================================================
 const getProducts = async (req, res) => {
     try {
-        // Fetch every product from the database
-        const products = await Product.find({});
-        res.status(200).json(products);
+        const { data, fromCache } = await getOrSet(
+            'products:all',
+            () => Product.find({}),
+            PRODUCT_TTL
+        );
+
+        res.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
+        res.set('X-Cache', fromCache ? 'HIT' : 'MISS');
+        res.status(200).json(data);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -22,13 +32,19 @@ const getProducts = async (req, res) => {
 // ============================================================
 const getProductById = async (req, res) => {
     try {
-        const product = await Product.findById(req.params.id);
+        const { data, fromCache } = await getOrSet(
+            `products:${req.params.id}`,
+            () => Product.findById(req.params.id),
+            PRODUCT_TTL
+        );
 
-        if (!product) {
+        if (!data) {
             return res.status(404).json({ message: 'Product not found' });
         }
 
-        res.status(200).json(product);
+        res.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
+        res.set('X-Cache', fromCache ? 'HIT' : 'MISS');
+        res.status(200).json(data);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -53,6 +69,10 @@ const createProduct = async (req, res) => {
             lifestyleImage,
             lensOption   // Mongoose will validate each sub-doc against lensOptions schema
         });
+
+        // Invalidate product cache + collections (since collections populate products)
+        invalidatePrefix('products:');
+        invalidatePrefix('collections:');
 
         res.status(201).json(product);
     } catch (error) {
@@ -79,6 +99,10 @@ const updateProduct = async (req, res) => {
             return res.status(404).json({ message: 'Product not found' });
         }
 
+        // Invalidate product cache + collections (since collections populate products)
+        invalidatePrefix('products:');
+        invalidatePrefix('collections:');
+
         res.status(200).json(product);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -97,6 +121,10 @@ const deleteProduct = async (req, res) => {
         if (!product) {
             return res.status(404).json({ message: 'Product not found' });
         }
+
+        // Invalidate product cache + collections (since collections populate products)
+        invalidatePrefix('products:');
+        invalidatePrefix('collections:');
 
         res.status(200).json({ message: 'Product deleted successfully' });
     } catch (error) {

@@ -1,4 +1,8 @@
 const Waitlist = require('../models/Waitlist');
+const { getOrSet, invalidatePrefix } = require('../middleware/cache');
+
+// Cache TTL for waitlist (2 minutes)
+const WAITLIST_TTL = 120;
 
 // ============================================================
 // @desc    Get all waitlist entries
@@ -8,11 +12,17 @@ const Waitlist = require('../models/Waitlist');
 const getWaitlistEntries = async (req, res) => {
     try {
         // Populate both references so we can see which user is waiting for which product
-        const entries = await Waitlist.find({})
-            .populate('product', 'name basePrice mainImage')
-            .populate('user', 'firstName lastName email');
+        const { data, fromCache } = await getOrSet(
+            'waitlist:all',
+            () => Waitlist.find({})
+                .populate('product', 'name basePrice mainImage')
+                .populate('user', 'firstName lastName email'),
+            WAITLIST_TTL
+        );
 
-        res.status(200).json(entries);
+        res.set('Cache-Control', 'private, no-cache');
+        res.set('X-Cache', fromCache ? 'HIT' : 'MISS');
+        res.status(200).json(data);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -25,10 +35,16 @@ const getWaitlistEntries = async (req, res) => {
 // ============================================================
 const getWaitlistByProduct = async (req, res) => {
     try {
-        const entries = await Waitlist.find({ product: req.params.productId })
-            .populate('user', 'firstName lastName email');
+        const { data, fromCache } = await getOrSet(
+            `waitlist:product:${req.params.productId}`,
+            () => Waitlist.find({ product: req.params.productId })
+                .populate('user', 'firstName lastName email'),
+            WAITLIST_TTL
+        );
 
-        res.status(200).json(entries);
+        res.set('Cache-Control', 'private, no-cache');
+        res.set('X-Cache', fromCache ? 'HIT' : 'MISS');
+        res.status(200).json(data);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -41,10 +57,16 @@ const getWaitlistByProduct = async (req, res) => {
 // ============================================================
 const getWaitlistByUser = async (req, res) => {
     try {
-        const entries = await Waitlist.find({ user: req.params.userId })
-            .populate('product', 'name basePrice mainImage');
+        const { data, fromCache } = await getOrSet(
+            `waitlist:user:${req.params.userId}`,
+            () => Waitlist.find({ user: req.params.userId })
+                .populate('product', 'name basePrice mainImage'),
+            WAITLIST_TTL
+        );
 
-        res.status(200).json(entries);
+        res.set('Cache-Control', 'private, no-cache');
+        res.set('X-Cache', fromCache ? 'HIT' : 'MISS');
+        res.status(200).json(data);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -68,6 +90,9 @@ const addToWaitlist = async (req, res) => {
 
         const entry = await Waitlist.create({ product, user });
 
+        // Invalidate all waitlist caches
+        invalidatePrefix('waitlist:');
+
         res.status(201).json(entry);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -86,6 +111,9 @@ const removeFromWaitlist = async (req, res) => {
         if (!entry) {
             return res.status(404).json({ message: 'Waitlist entry not found' });
         }
+
+        // Invalidate all waitlist caches
+        invalidatePrefix('waitlist:');
 
         res.status(200).json({ message: 'Removed from waitlist successfully' });
     } catch (error) {

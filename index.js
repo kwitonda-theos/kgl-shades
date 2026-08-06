@@ -41,6 +41,12 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'success', message: 'KGL Shades API is running smoothly!' });
 });
 
+// ── Cache Stats (for debugging / monitoring) ──────────────────
+const { getStats } = require('./middleware/cache');
+app.get('/api/cache-stats', (req, res) => {
+    res.json({ status: 'success', cache: getStats() });
+});
+
 // ── Start Server ───────────────────────────────────────────────
 app.listen(PORT, () => {
     console.log(`🚀 Server is buzzing on http://localhost:${PORT}`);

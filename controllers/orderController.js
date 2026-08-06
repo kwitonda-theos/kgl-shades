@@ -1,4 +1,8 @@
 const Order = require('../models/Orders');
+const { getOrSet, invalidatePrefix } = require('../middleware/cache');
+
+// Cache TTL for orders (1 minute — orders are time-sensitive)
+const ORDER_TTL = 60;
 
 // ============================================================
 // @desc    Get all orders
@@ -10,11 +14,17 @@ const getOrders = async (req, res) => {
         // .populate('user') replaces the user ObjectId with the actual user document
         // .populate('items.product') does the same for each product inside order items
         // This is similar to Django's select_related / prefetch_related
-        const orders = await Order.find({})
-            .populate('user', 'firstName lastName email')     // only grab these user fields
-            .populate('items.product', 'name basePrice');     // only grab these product fields
+        const { data, fromCache } = await getOrSet(
+            'orders:all',
+            () => Order.find({})
+                .populate('user', 'firstName lastName email')
+                .populate('items.product', 'name basePrice'),
+            ORDER_TTL
+        );
 
-        res.status(200).json(orders);
+        res.set('Cache-Control', 'private, no-cache');
+        res.set('X-Cache', fromCache ? 'HIT' : 'MISS');
+        res.status(200).json(data);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -27,15 +37,21 @@ const getOrders = async (req, res) => {
 // ============================================================
 const getOrderById = async (req, res) => {
     try {
-        const order = await Order.findById(req.params.id)
-            .populate('user', 'firstName lastName email')
-            .populate('items.product', 'name basePrice mainImage');
+        const { data, fromCache } = await getOrSet(
+            `orders:${req.params.id}`,
+            () => Order.findById(req.params.id)
+                .populate('user', 'firstName lastName email')
+                .populate('items.product', 'name basePrice mainImage'),
+            ORDER_TTL
+        );
 
-        if (!order) {
+        if (!data) {
             return res.status(404).json({ message: 'Order not found' });
         }
 
-        res.status(200).json(order);
+        res.set('Cache-Control', 'private, no-cache');
+        res.set('X-Cache', fromCache ? 'HIT' : 'MISS');
+        res.status(200).json(data);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -48,12 +64,17 @@ const getOrderById = async (req, res) => {
 // ============================================================
 const getOrdersByUser = async (req, res) => {
     try {
-        // Filter orders where the 'user' field matches the userId from the URL
-        const orders = await Order.find({ user: req.params.userId })
-            .populate('items.product', 'name basePrice')
-            .sort({ createdAt: -1 });   // newest orders first
+        const { data, fromCache } = await getOrSet(
+            `orders:user:${req.params.userId}`,
+            () => Order.find({ user: req.params.userId })
+                .populate('items.product', 'name basePrice')
+                .sort({ createdAt: -1 }),
+            ORDER_TTL
+        );
 
-        res.status(200).json(orders);
+        res.set('Cache-Control', 'private, no-cache');
+        res.set('X-Cache', fromCache ? 'HIT' : 'MISS');
+        res.status(200).json(data);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -82,6 +103,9 @@ const createOrder = async (req, res) => {
             items
         });
 
+        // Invalidate all order caches
+        invalidatePrefix('orders:');
+
         res.status(201).json(order);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -105,6 +129,9 @@ const updateOrder = async (req, res) => {
             return res.status(404).json({ message: 'Order not found' });
         }
 
+        // Invalidate all order caches
+        invalidatePrefix('orders:');
+
         res.status(200).json(order);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -123,6 +150,9 @@ const deleteOrder = async (req, res) => {
         if (!order) {
             return res.status(404).json({ message: 'Order not found' });
         }
+
+        // Invalidate all order caches
+        invalidatePrefix('orders:');
 
         res.status(200).json({ message: 'Order deleted successfully' });
     } catch (error) {

@@ -1,4 +1,8 @@
 const Review = require('../models/Review');
+const { getOrSet, invalidatePrefix } = require('../middleware/cache');
+
+// Cache TTL for reviews (2 minutes — reviews change more often)
+const REVIEW_TTL = 120;
 
 // ============================================================
 // @desc    Get all reviews
@@ -9,11 +13,17 @@ const getReviews = async (req, res) => {
     try {
         // Populate both the product and user references so the frontend
         // can display product names and reviewer info without extra API calls
-        const reviews = await Review.find({})
-            .populate('product', 'name basePrice')
-            .populate('user', 'firstName lastName');
+        const { data, fromCache } = await getOrSet(
+            'reviews:all',
+            () => Review.find({})
+                .populate('product', 'name basePrice')
+                .populate('user', 'firstName lastName'),
+            REVIEW_TTL
+        );
 
-        res.status(200).json(reviews);
+        res.set('Cache-Control', 'public, max-age=30, s-maxage=120, stale-while-revalidate=300');
+        res.set('X-Cache', fromCache ? 'HIT' : 'MISS');
+        res.status(200).json(data);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -26,12 +36,17 @@ const getReviews = async (req, res) => {
 // ============================================================
 const getReviewsByProduct = async (req, res) => {
     try {
-        // Filter reviews where the 'product' field matches the productId
-        const reviews = await Review.find({ product: req.params.productId })
-            .populate('user', 'firstName lastName')
-            .sort({ createdAt: -1 });   // newest reviews first
+        const { data, fromCache } = await getOrSet(
+            `reviews:product:${req.params.productId}`,
+            () => Review.find({ product: req.params.productId })
+                .populate('user', 'firstName lastName')
+                .sort({ createdAt: -1 }),
+            REVIEW_TTL
+        );
 
-        res.status(200).json(reviews);
+        res.set('Cache-Control', 'public, max-age=30, s-maxage=120, stale-while-revalidate=300');
+        res.set('X-Cache', fromCache ? 'HIT' : 'MISS');
+        res.status(200).json(data);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -44,15 +59,21 @@ const getReviewsByProduct = async (req, res) => {
 // ============================================================
 const getReviewById = async (req, res) => {
     try {
-        const review = await Review.findById(req.params.id)
-            .populate('product', 'name')
-            .populate('user', 'firstName lastName');
+        const { data, fromCache } = await getOrSet(
+            `reviews:${req.params.id}`,
+            () => Review.findById(req.params.id)
+                .populate('product', 'name')
+                .populate('user', 'firstName lastName'),
+            REVIEW_TTL
+        );
 
-        if (!review) {
+        if (!data) {
             return res.status(404).json({ message: 'Review not found' });
         }
 
-        res.status(200).json(review);
+        res.set('Cache-Control', 'public, max-age=30, s-maxage=120, stale-while-revalidate=300');
+        res.set('X-Cache', fromCache ? 'HIT' : 'MISS');
+        res.status(200).json(data);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -82,6 +103,9 @@ const createReview = async (req, res) => {
             user
         });
 
+        // Invalidate all review caches
+        invalidatePrefix('reviews:');
+
         res.status(201).json(review);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -105,6 +129,9 @@ const updateReview = async (req, res) => {
             return res.status(404).json({ message: 'Review not found' });
         }
 
+        // Invalidate all review caches
+        invalidatePrefix('reviews:');
+
         res.status(200).json(review);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -123,6 +150,9 @@ const deleteReview = async (req, res) => {
         if (!review) {
             return res.status(404).json({ message: 'Review not found' });
         }
+
+        // Invalidate all review caches
+        invalidatePrefix('reviews:');
 
         res.status(200).json({ message: 'Review deleted successfully' });
     } catch (error) {
