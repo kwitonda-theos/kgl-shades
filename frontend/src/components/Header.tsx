@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
+import { SignInButton, SignUpButton, Show, UserButton } from "@clerk/nextjs";
 import { useCart } from "@/context/CartContext";
 import CartDrawer from "./CartDrawer";
 
@@ -117,74 +118,30 @@ export default function Header({ leftNode }: HeaderProps = {}) {
         {/* Controls */}
         <div className="header-controls">
           {/* Profile / Auth */}
-          {user ? (
-            <div className="profile-menu">
-              <button
-                className="profile-avatar"
-                onClick={() => setShowDropdown(!showDropdown)}
-                aria-label="User menu"
-                id="user-menu-button"
-              >
-                {getInitials(user)}
+          <Show when="signed-out">
+            <SignInButton mode="modal">
+              <button className="nav-auth-btn" id="header-sign-in-btn">
+                Sign In
               </button>
+            </SignInButton>
+            <SignUpButton mode="modal">
+              <button className="nav-auth-btn nav-auth-btn-primary" id="header-sign-up-btn">
+                Sign Up
+              </button>
+            </SignUpButton>
+          </Show>
 
-              {showDropdown && (
-                <div className="profile-dropdown" id="user-dropdown">
-                  <div className="profile-dropdown-header">
-                    <span className="profile-dropdown-name">
-                      {user.firstName} {user.lastName}
-                    </span>
-                    <span className="profile-dropdown-email">{user.email}</span>
-                  </div>
-                  <div className="profile-dropdown-divider" />
-                  {user.role === 'admin' && (
-                    <a
-                      href="/admin"
-                      className="profile-dropdown-item"
-                      id="admin-dashboard-link"
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="3" y="3" width="7" height="7" />
-                        <rect x="14" y="3" width="7" height="7" />
-                        <rect x="14" y="14" width="7" height="7" />
-                        <rect x="3" y="14" width="7" height="7" />
-                      </svg>
-                      Admin Dashboard
-                    </a>
-                  )}
-                  <button
-                    className="profile-dropdown-item"
-                    onClick={handleLogout}
-                    id="logout-button"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                      <polyline points="16 17 21 12 16 7" />
-                      <line x1="21" y1="12" x2="9" y2="12" />
-                    </svg>
-                    Sign Out
-                  </button>
-                </div>
-              )}
+          <Show when="signed-in">
+            <div className="profile-menu">
+              <UserButton
+                appearance={{
+                  elements: {
+                    userButtonAvatarBox: "w-8 h-8 rounded-full",
+                  },
+                }}
+              />
             </div>
-          ) : (
-            <a href="/login" className="profile-button" aria-label="Go to Profile/Auth">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
-            </a>
-          )}
+          </Show>
 
           {/* Theme Toggle */}
           <button
