@@ -5,6 +5,8 @@ const router = express.Router();
 const {
     getUsers,
     getUserById,
+    getUserByClerkId,
+    syncClerkUser,
     createUser,
     loginUser,
     updateUser,
@@ -12,11 +14,17 @@ const {
     updateUserPreferences
 } = require('../controllers/userController');
 
-// ── POST /api/users/login → authenticate a user
+// ── POST /api/users/sync  → instant sync/upsert Clerk user in MongoDB
+router.post('/sync', syncClerkUser);
+
+// ── GET /api/users/by-clerk/:clerkId → fetch user by Clerk ID
+router.get('/by-clerk/:clerkId', getUserByClerkId);
+
+// ── POST /api/users/login → authenticate a user (legacy fallback)
 router.post('/login', loginUser);
 
 // ── GET /api/users       → fetch all users
-// ── POST /api/users      → create (register) a new user
+// ── POST /api/users      → create (register) a new user (legacy fallback)
 router.route('/').get(getUsers).post(createUser);
 
 // ── GET /api/users/:id   → fetch one user by ID

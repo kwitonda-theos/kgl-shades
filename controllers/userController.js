@@ -8,7 +8,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'kgl-shades-secret-key-change-me';
 // Helper: generate a JWT token for a user
 const generateToken = (user) => {
     return jwt.sign(
-        { id: user._id, email: user.email },
+        { id: user._id, email: user.email, clerkId: user.clerkId },
         JWT_SECRET,
         { expiresIn: '7d' } // token lasts 7 days
     );
@@ -21,12 +21,9 @@ const generateToken = (user) => {
 // ============================================================
 const getUsers = async (req, res) => {
     try {
-        // .find({}) returns every document in the 'users' collection
-        // Exclude passwordHash from the response for security
         const users = await User.find({}).select('-passwordHash');
         res.status(200).json(users);
     } catch (error) {
-        // 500 = Internal Server Error — something broke on our end
         res.status(500).json({ message: error.message });
     }
 };
@@ -38,10 +35,10 @@ const getUsers = async (req, res) => {
 // ============================================================
 const getUserById = async (req, res) => {
     try {
-        // req.params.id pulls the :id from the URL (e.g. /api/users/abc123)
-        const user = await User.findById(req.params.id).select('-passwordHash');
+        const user = await User.findById(req.params.id)
+            .populate('cart.product')
+            .select('-passwordHash');
 
-        // If no document matched the given ID, return a 404
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
@@ -53,50 +50,133 @@ const getUserById = async (req, res) => {
 };
 
 // ============================================================
-// @desc    Register a new user (signup)
+// @desc    Get a single user by their Clerk ID
+// @route   GET /api/users/by-clerk/:clerkId
+// @access  Public
+// ============================================================
+const getUserByClerkId = async (req, res) => {
+    try {
+        const user = await User.findOne({ clerkId: req.params.clerkId })
+            .populate('cart.product')
+            .select('-passwordHash');
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.status(200).json(user);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// ============================================================
+// @desc    Instant Sync / Upsert a Clerk user in MongoDB
+// @route   POST /api/users/sync
+// @access  Public
+// ============================================================
+const syncClerkUser = async (req, res) => {
+    try {
+        const { clerkId, email, firstName, lastName, phone, imageUrl, theme, cart } = req.body;
+
+        if (!email) {
+            return res.status(400).json({ message: 'Email is required to sync user' });
+        }
+
+        const normalizedEmail = email.toLowerCase().trim();
+
+        // Build update object
+        const updateData = {
+            email: normalizedEmail,
+        };
+
+        if (clerkId) updateData.clerkId = clerkId;
+        if (firstName !== undefined) updateData.firstName = firstName;
+        if (lastName !== undefined) updateData.lastName = lastName;
+        if (phone !== undefined) updateData.phone = String(phone);
+        if (imageUrl !== undefined) updateData.imageUrl = imageUrl;
+        if (theme !== undefined) updateData.theme = theme;
+
+        const filter = clerkId
+            ? { $or: [{ clerkId }, { email: normalizedEmail }] }
+            : { email: normalizedEmail };
+
+        // Find existing user first so we don't accidentally overwrite existing cart if not provided
+        let user = await User.findOne(filter).populate('cart.product');
+
+        if (!user) {
+            if (cart) updateData.cart = cart;
+            user = await User.create(updateData);
+        } else {
+            // Update fields
+            Object.assign(user, updateData);
+            if (cart && (!user.cart || user.cart.length === 0)) {
+                user.cart = cart;
+            }
+            await user.save();
+            user = await User.findById(user._id).populate('cart.product');
+        }
+
+        const token = generateToken(user);
+
+        res.status(200).json({
+            _id: user._id,
+            clerkId: user.clerkId,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            phone: user.phone,
+            imageUrl: user.imageUrl,
+            role: user.role,
+            theme: user.theme,
+            cart: user.cart,
+            token
+        });
+    } catch (error) {
+        console.error('Error syncing Clerk user:', error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// ============================================================
+// @desc    Register a new user (signup - legacy/fallback)
 // @route   POST /api/users
 // @access  Public
 // ============================================================
 const createUser = async (req, res) => {
     try {
-        // Destructure the fields we expect from the request body
         const { email, passwordHash: plainPassword, firstName, lastName, phone } = req.body;
 
-        // Validate required fields
-        if (!email || !plainPassword || !phone) {
-            return res.status(400).json({ message: 'Email, password, and phone are required' });
+        if (!email || !plainPassword) {
+            return res.status(400).json({ message: 'Email and password are required' });
         }
 
-        // Check if a user with this email already exists (email is unique)
-        const existingUser = await User.findOne({ email });
+        const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
         if (existingUser) {
             return res.status(400).json({ message: 'A user with this email already exists' });
         }
 
-        // Hash the password with bcrypt (10 salt rounds)
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(plainPassword, salt);
 
-        // .create() is shorthand for new User({...}).save()
         const user = await User.create({
-            email,
+            email: email.toLowerCase().trim(),
             passwordHash: hashedPassword,
             firstName,
             lastName,
-            phone
+            phone: phone ? String(phone) : ''
         });
 
-        // Generate a JWT token so the user is logged in immediately after signup
         const token = generateToken(user);
 
-        // 201 = Created — the resource was successfully created
-        // Return user data (without the hashed password) + token
         res.status(201).json({
             _id: user._id,
+            clerkId: user.clerkId,
             email: user.email,
             firstName: user.firstName,
             lastName: user.lastName,
             phone: user.phone,
+            imageUrl: user.imageUrl,
             role: user.role,
             theme: user.theme,
             cart: user.cart,
@@ -108,7 +188,7 @@ const createUser = async (req, res) => {
 };
 
 // ============================================================
-// @desc    Login a user
+// @desc    Login a user (legacy/fallback)
 // @route   POST /api/users/login
 // @access  Public
 // ============================================================
@@ -116,33 +196,30 @@ const loginUser = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        // Validate required fields
         if (!email || !password) {
             return res.status(400).json({ message: 'Email and password are required' });
         }
 
-        // Find the user by email and populate their cart products
-        const user = await User.findOne({ email }).populate('cart.product');
-        if (!user) {
+        const user = await User.findOne({ email: email.toLowerCase().trim() }).populate('cart.product');
+        if (!user || !user.passwordHash) {
             return res.status(401).json({ message: 'Invalid email or password' });
         }
 
-        // Compare the provided password with the stored hash
         const isMatch = await bcrypt.compare(password, user.passwordHash);
         if (!isMatch) {
             return res.status(401).json({ message: 'Invalid email or password' });
         }
 
-        // Generate a JWT token
         const token = generateToken(user);
 
-        // Return user data (without the hashed password) + token
         res.status(200).json({
             _id: user._id,
+            clerkId: user.clerkId,
             email: user.email,
             firstName: user.firstName,
             lastName: user.lastName,
             phone: user.phone,
+            imageUrl: user.imageUrl,
             role: user.role,
             theme: user.theme,
             cart: user.cart,
@@ -160,9 +237,6 @@ const loginUser = async (req, res) => {
 // ============================================================
 const updateUser = async (req, res) => {
     try {
-        // findByIdAndUpdate takes the ID, the new data, and options:
-        //   - { new: true }       → return the UPDATED document (not the old one)
-        //   - { runValidators: true } → re-run schema validations on the new data
         const user = await User.findByIdAndUpdate(
             req.params.id,
             req.body,
@@ -188,7 +262,6 @@ const updateUserPreferences = async (req, res) => {
     try {
         const { theme, cart } = req.body;
         
-        // Build the update object dynamically
         const updateData = {};
         if (theme !== undefined) updateData.theme = theme;
         if (cart !== undefined) updateData.cart = cart;
@@ -222,17 +295,17 @@ const deleteUser = async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        // Return confirmation so the frontend knows it worked
         res.status(200).json({ message: 'User deleted successfully' });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 };
 
-// Export all controller functions so they can be used in the routes file
 module.exports = {
     getUsers,
     getUserById,
+    getUserByClerkId,
+    syncClerkUser,
     createUser,
     loginUser,
     updateUser,

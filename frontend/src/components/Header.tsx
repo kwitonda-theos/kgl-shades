@@ -1,16 +1,18 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
-import { SignInButton, SignUpButton, Show, UserButton } from "@clerk/nextjs";
+import Link from "next/link";
+import { Show, UserButton, useUser, useClerk } from "@clerk/nextjs";
 import { useCart } from "@/context/CartContext";
 import CartDrawer from "./CartDrawer";
 
 interface UserData {
   _id: string;
+  clerkId?: string;
   email: string;
   firstName: string;
   lastName: string;
-  phone: number;
+  phone?: string | number;
   role?: string;
 }
 
@@ -20,12 +22,14 @@ interface HeaderProps {
 
 export default function Header({ leftNode }: HeaderProps = {}) {
   const { itemCount } = useCart();
+  const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
+  const { signOut } = useClerk();
+
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [user, setUser] = useState<UserData | null>(null);
-  const [showDropdown, setShowDropdown] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
 
-  // On mount, read saved preferences
+  // On mount, read saved preferences & check login
   useEffect(() => {
     const saved = localStorage.getItem("kgl-theme") as "dark" | "light" | null;
     if (saved) {
@@ -33,26 +37,60 @@ export default function Header({ leftNode }: HeaderProps = {}) {
       document.documentElement.setAttribute("data-theme", saved);
     }
 
-    // Check if user is logged in
+    // Check if user is stored in localStorage
     const userData = localStorage.getItem("kgl-user");
     if (userData) {
       try {
         setUser(JSON.parse(userData));
       } catch {
-        // Invalid data — clear it
         localStorage.removeItem("kgl-user");
         localStorage.removeItem("kgl-token");
       }
     }
 
-    // Check if we need to auto-open the cart (e.g. returning from login)
+    // Check if we need to auto-open the cart
     const params = new URLSearchParams(window.location.search);
     if (params.get("openCart") === "true") {
       setIsCartOpen(true);
-      // Clean the URL
       window.history.replaceState({}, "", "/");
     }
   }, []);
+
+  // Sync Clerk authenticated user with MongoDB when loaded
+  useEffect(() => {
+    if (isClerkLoaded && clerkUser) {
+      const email = clerkUser.primaryEmailAddress?.emailAddress;
+      if (email) {
+        fetch("/api/users/sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            clerkId: clerkUser.id,
+            email,
+            firstName: clerkUser.firstName || "",
+            lastName: clerkUser.lastName || "",
+            imageUrl: clerkUser.imageUrl || "",
+          }),
+        })
+          .then((res) => (res.ok ? res.json() : null))
+          .then((dbUser) => {
+            if (dbUser) {
+              if (dbUser.token) localStorage.setItem("kgl-token", dbUser.token);
+              localStorage.setItem("kgl-user", JSON.stringify(dbUser));
+              setUser(dbUser);
+            }
+          })
+          .catch((err) => console.warn("Background user sync notice:", err));
+      }
+    } else if (isClerkLoaded && !clerkUser) {
+      // User signed out in Clerk -> clear localStorage user
+      if (localStorage.getItem("kgl-user")) {
+        localStorage.removeItem("kgl-user");
+        localStorage.removeItem("kgl-token");
+        setUser(null);
+      }
+    }
+  }, [isClerkLoaded, clerkUser]);
 
   const toggleTheme = () => {
     const next = theme === "dark" ? "light" : "dark";
@@ -69,24 +107,9 @@ export default function Header({ leftNode }: HeaderProps = {}) {
       fetch(`/api/users/${user._id}/preferences`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ theme: next })
+        body: JSON.stringify({ theme: next }),
       }).catch(() => {});
     }
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem("kgl-token");
-    localStorage.removeItem("kgl-user");
-    setUser(null);
-    setShowDropdown(false);
-    window.location.href = "/";
-  };
-
-  // Get initials from user name
-  const getInitials = (u: UserData) => {
-    const first = u.firstName?.[0] || "";
-    const last = u.lastName?.[0] || "";
-    return (first + last).toUpperCase() || u.email[0].toUpperCase();
   };
 
   const handleCartOpen = useCallback(() => {
@@ -102,33 +125,28 @@ export default function Header({ leftNode }: HeaderProps = {}) {
       <header className="site-header" id="site-header">
         <div className="header-left">
           {/* Logo */}
-          <a href="/" className="site-logo" aria-label="KGL Shades Home">
+          <Link href="/" className="site-logo" aria-label="KGL Shades Home">
             <span className="logo-kgl">KGL</span>
             <span className="logo-shades">SHADES</span>
-          </a>
+          </Link>
           {leftNode}
         </div>
 
         {/* Navigation */}
         <nav className="site-nav" aria-label="Main navigation">
-          
-          <a href="/" className="nav-link">About</a>
+          <Link href="/" className="nav-link">About</Link>
         </nav>
 
         {/* Controls */}
         <div className="header-controls">
           {/* Profile / Auth */}
           <Show when="signed-out">
-            <SignInButton mode="modal">
-              <button className="nav-auth-btn" id="header-sign-in-btn">
-                Sign In
-              </button>
-            </SignInButton>
-            <SignUpButton mode="modal">
-              <button className="nav-auth-btn nav-auth-btn-primary" id="header-sign-up-btn">
-                Sign Up
-              </button>
-            </SignUpButton>
+            <Link href="/login" className="nav-auth-btn" id="header-sign-in-btn">
+              Sign In
+            </Link>
+            <Link href="/signup" className="nav-auth-btn nav-auth-btn-primary" id="header-sign-up-btn">
+              Sign Up
+            </Link>
           </Show>
 
           <Show when="signed-in">

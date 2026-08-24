@@ -3,9 +3,11 @@
 import React, { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useSignIn } from "@clerk/nextjs/legacy";
 import s from "./login.module.css";
 
 function LoginForm() {
+  const { isLoaded, signIn, setActive } = useSignIn();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect");
 
@@ -18,101 +20,147 @@ function LoginForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    if (!isLoaded || !signIn) {
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      const res = await fetch("/api/users/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+      // 1. Sign in with Clerk SDK
+      const result = await signIn.create({
+        identifier: email.trim(),
+        password,
       });
 
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.message || "Invalid credentials");
-      }
+      if (result.status === "complete") {
+        if (result.createdSessionId) {
+          await setActive({ session: result.createdSessionId });
+        }
 
-      const data = await res.json();
-
-      // ── MERGE CARTS ──
-      const localCartRaw = localStorage.getItem("kgl-cart");
-      let dbCart = data.cart || [];
-      
-      // Map DB cart format (product._id) to frontend format (product.id)
-      if (dbCart.length > 0) {
-        dbCart = dbCart.map((item: any) => ({
-          product: { ...item.product, id: item.product._id },
-          selectedLens: item.selectedLens,
-          quantity: item.quantity
-        }));
-      }
-
-      let mergedCart = [...dbCart];
-
-      if (localCartRaw) {
+        // 2. Sync / Fetch user from MongoDB
         try {
-          const localCart = JSON.parse(localCartRaw);
-          // Simple merge: append local items if they don't already exist
-          localCart.forEach((localItem: any) => {
-            const exists = mergedCart.find(
-              (dbItem: any) => 
-                dbItem.product.id === localItem.product.id && 
-                dbItem.selectedLens.id === localItem.selectedLens.id
-            );
-            if (!exists) {
-              mergedCart.push(localItem);
-            }
+          const syncRes = await fetch("/api/users/sync", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: email.trim(),
+            }),
           });
-        } catch (e) {
-          console.error("Cart merge failed", e);
+
+          if (syncRes.ok) {
+            const data = await syncRes.json();
+
+            // ── MERGE CARTS ──
+            const localCartRaw = localStorage.getItem("kgl-cart");
+            let dbCart = data.cart || [];
+
+            if (dbCart.length > 0) {
+              dbCart = dbCart.map((item: any) => ({
+                product: {
+                  ...item.product,
+                  id: item.product?._id || item.product?.id || item.product,
+                },
+                selectedLens: item.selectedLens,
+                quantity: item.quantity,
+              }));
+            }
+
+            let mergedCart = [...dbCart];
+
+            if (localCartRaw) {
+              try {
+                const localCart = JSON.parse(localCartRaw);
+                localCart.forEach((localItem: any) => {
+                  const exists = mergedCart.find(
+                    (dbItem: any) =>
+                      dbItem.product?.id === localItem.product?.id &&
+                      dbItem.selectedLens?.id === localItem.selectedLens?.id
+                  );
+                  if (!exists) {
+                    mergedCart.push(localItem);
+                  }
+                });
+              } catch (e) {
+                console.error("Cart merge failed", e);
+              }
+            }
+
+            localStorage.setItem("kgl-cart", JSON.stringify(mergedCart));
+
+            // ── APPLY THEME ──
+            if (data.theme) {
+              localStorage.setItem("kgl-theme", data.theme);
+              if (data.theme === "light") {
+                document.documentElement.setAttribute("data-theme", "light");
+              } else {
+                document.documentElement.removeAttribute("data-theme");
+              }
+            }
+
+            if (data.token) localStorage.setItem("kgl-token", data.token);
+            localStorage.setItem(
+              "kgl-user",
+              JSON.stringify({
+                _id: data._id,
+                clerkId: data.clerkId || "",
+                email: data.email,
+                firstName: data.firstName,
+                lastName: data.lastName,
+                phone: data.phone,
+                role: data.role,
+              })
+            );
+
+            // Sync merged cart back to MongoDB
+            if (data._id) {
+              fetch(`/api/users/${data._id}/preferences`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ cart: mergedCart }),
+              }).catch(() => {});
+            }
+          }
+        } catch (syncErr) {
+          console.warn("MongoDB sync during login encountered warning:", syncErr);
         }
-      }
 
-      // Save merged cart so CartContext picks it up on reload
-      localStorage.setItem("kgl-cart", JSON.stringify(mergedCart));
-
-      // ── APPLY THEME ──
-      if (data.theme) {
-        localStorage.setItem("kgl-theme", data.theme);
-        if (data.theme === "light") {
-          document.documentElement.setAttribute("data-theme", "light");
+        if (redirectTo === "checkout") {
+          window.location.href = "/?openCart=true";
         } else {
-          document.documentElement.removeAttribute("data-theme");
+          window.location.href = "/";
         }
-      }
-
-      localStorage.setItem("kgl-token", data.token);
-      localStorage.setItem("kgl-user", JSON.stringify({
-        _id: data._id,
-        email: data.email,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        phone: data.phone,
-        role: data.role,
-      }));
-
-      // Fire a background sync of the merged cart before redirecting
-      try {
-        await fetch(`/api/users/${data._id}/preferences`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cart: mergedCart })
-        });
-      } catch (e) {
-        // ignore
-      }
-
-      if (redirectTo === "checkout") {
-        window.location.href = "/?openCart=true";
       } else {
-        window.location.href = "/";
+        setError("Sign in incomplete. Please check your credentials.");
       }
-    } catch (err: unknown) {
+    } catch (err: any) {
+      console.error("Clerk login error:", err);
       const message =
-        err instanceof Error ? err.message : "Something went wrong";
+        err.errors?.[0]?.longMessage ||
+        err.errors?.[0]?.message ||
+        err.message ||
+        "Invalid email or password";
       setError(message);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Google OAuth Login
+  const handleGoogleLogin = async () => {
+    if (!isLoaded || !signIn) return;
+    try {
+      await signIn.authenticateWithRedirect({
+        strategy: "oauth_google",
+        redirectUrl: "/sso-callback",
+        redirectUrlComplete: redirectTo === "checkout" ? "/?openCart=true" : "/",
+      });
+    } catch (err: any) {
+      console.error("Google login error:", err);
+      setError(
+        err.errors?.[0]?.message || err.message || "Google sign-in failed"
+      );
     }
   };
 
@@ -258,7 +306,7 @@ function LoginForm() {
                     </svg>
                   ) : (
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z" />
                       <circle cx="12" cy="12" r="3" />
                     </svg>
                   )}
@@ -266,11 +314,14 @@ function LoginForm() {
               </div>
             </div>
 
+            {/* Clerk CAPTCHA Container */}
+            <div id="clerk-captcha" style={{ display: "flex", justifyContent: "center", margin: "8px 0" }} />
+
             {/* Submit */}
             <button
               type="submit"
               className={s.submit}
-              disabled={isLoading}
+              disabled={isLoading || !isLoaded}
               id="login-submit"
             >
               {isLoading ? <span className={s.spinner} /> : "Sign In"}
@@ -283,7 +334,13 @@ function LoginForm() {
           </div>
 
           {/* Google Login */}
-          <button className={s.socialBtn} id="google-login" type="button">
+          <button
+            className={s.socialBtn}
+            id="google-login"
+            type="button"
+            onClick={handleGoogleLogin}
+            disabled={isLoading || !isLoaded}
+          >
             <svg width="18" height="18" viewBox="0 0 24 24">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
               <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />

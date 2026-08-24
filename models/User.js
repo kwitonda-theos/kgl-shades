@@ -1,6 +1,12 @@
 const mongoose = require('mongoose');
 
-const Users = new mongoose.Schema({
+const UserSchema = new mongoose.Schema({
+    clerkId: {
+        type: String,
+        unique: true,
+        sparse: true,
+        index: true
+    },
     email: {
         type: String,
         required: true,
@@ -10,17 +16,17 @@ const Users = new mongoose.Schema({
     },
     passwordHash: {
         type: String,
-        required: true
+        required: false
     },
-    firstName: { type: String },
-    lastName: { type: String },
+    firstName: { type: String, default: '' },
+    lastName: { type: String, default: '' },
     phone: {
-        type: Number,
-        required: true,
-        validate: {
-            validator: Number.isInteger,
-            message: '{VALUE} is not a number'
-        }
+        type: String,
+        default: ''
+    },
+    imageUrl: {
+        type: String,
+        default: ''
     },
     role: {
         type: String,
@@ -44,6 +50,6 @@ const Users = new mongoose.Schema({
             quantity: { type: Number, default: 1 }
         }
     ]
-},{timestamps: true});
+}, { timestamps: true });
 
-module.exports = mongoose.models.User || mongoose.model('User', Users);
+module.exports = mongoose.models.User || mongoose.model('User', UserSchema);

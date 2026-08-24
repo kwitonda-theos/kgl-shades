@@ -12,21 +12,26 @@ const waitlistRoutes = require('./routes/waitlistRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const collectionRoutes = require('./routes/collectionRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
+const webhookRoutes = require('./routes/webhookRoutes');
 
 const app = express();
-const PORT = process.env.PORT || 5000; // Fixed: was Process.env (capital P caused a crash)
+const PORT = process.env.PORT || 5000;
 
 // Connect to MongoDB Atlas before the server starts taking requests
 connectDB();
 
 // ── Global Middleware ─────────────────────────────────────────
 app.use(cors()); // Allow all origins for dev
-// Parse incoming JSON request bodies (req.body)
-app.use(express.json());
+
+// Parse incoming JSON request bodies (req.body) and preserve raw buffer for webhook signature verification
+app.use(express.json({
+    verify: (req, res, buf) => {
+        req.rawBody = buf;
+    }
+}));
 
 // ── API Routes ─────────────────────────────────────────────────
-// All routes are prefixed with /api to clearly separate the API from
-// any static files or other middleware you might add later
+// All routes are prefixed with /api to clearly separate the API
 app.use('/api/users', userRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
@@ -35,6 +40,7 @@ app.use('/api/waitlist', waitlistRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/collections', collectionRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/webhooks', webhookRoutes);
 
 // ── Health Check ───────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
