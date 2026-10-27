@@ -2,13 +2,11 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { Show, UserButton, useUser, useClerk } from "@clerk/nextjs";
 import { useCart } from "@/context/CartContext";
 import CartDrawer from "./CartDrawer";
 
 interface UserData {
   _id: string;
-  clerkId?: string;
   email: string;
   firstName: string;
   lastName: string;
@@ -22,9 +20,6 @@ interface HeaderProps {
 
 export default function Header({ leftNode }: HeaderProps = {}) {
   const { itemCount } = useCart();
-  const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
-  const { signOut } = useClerk();
-
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [user, setUser] = useState<UserData | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -55,42 +50,6 @@ export default function Header({ leftNode }: HeaderProps = {}) {
       window.history.replaceState({}, "", "/");
     }
   }, []);
-
-  // Sync Clerk authenticated user with MongoDB when loaded
-  useEffect(() => {
-    if (isClerkLoaded && clerkUser) {
-      const email = clerkUser.primaryEmailAddress?.emailAddress;
-      if (email) {
-        fetch("/api/users/sync", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            clerkId: clerkUser.id,
-            email,
-            firstName: clerkUser.firstName || "",
-            lastName: clerkUser.lastName || "",
-            imageUrl: clerkUser.imageUrl || "",
-          }),
-        })
-          .then((res) => (res.ok ? res.json() : null))
-          .then((dbUser) => {
-            if (dbUser) {
-              if (dbUser.token) localStorage.setItem("kgl-token", dbUser.token);
-              localStorage.setItem("kgl-user", JSON.stringify(dbUser));
-              setUser(dbUser);
-            }
-          })
-          .catch((err) => console.warn("Background user sync notice:", err));
-      }
-    } else if (isClerkLoaded && !clerkUser) {
-      // User signed out in Clerk -> clear localStorage user
-      if (localStorage.getItem("kgl-user")) {
-        localStorage.removeItem("kgl-user");
-        localStorage.removeItem("kgl-token");
-        setUser(null);
-      }
-    }
-  }, [isClerkLoaded, clerkUser]);
 
   const toggleTheme = () => {
     const next = theme === "dark" ? "light" : "dark";
@@ -140,26 +99,30 @@ export default function Header({ leftNode }: HeaderProps = {}) {
         {/* Controls */}
         <div className="header-controls">
           {/* Profile / Auth */}
-          <Show when="signed-out">
+          {!user ? (
+            <>
             <Link href="/login" className="nav-auth-btn" id="header-sign-in-btn">
               Sign In
             </Link>
             <Link href="/signup" className="nav-auth-btn nav-auth-btn-primary" id="header-sign-up-btn">
               Sign Up
             </Link>
-          </Show>
-
-          <Show when="signed-in">
+            </>
+          ) : (
             <div className="profile-menu">
-              <UserButton
-                appearance={{
-                  elements: {
-                    userButtonAvatarBox: "w-8 h-8 rounded-full",
-                  },
+              <button
+                type="button"
+                className="nav-auth-btn"
+                onClick={() => {
+                  localStorage.removeItem("kgl-token");
+                  localStorage.removeItem("kgl-user");
+                  setUser(null);
                 }}
-              />
+              >
+                Sign Out
+              </button>
             </div>
-          </Show>
+          )}
 
           {/* Theme Toggle */}
           <button

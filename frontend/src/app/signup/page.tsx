@@ -3,11 +3,9 @@
 import React, { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { useSignUp } from "@clerk/nextjs/legacy";
 import s from "./signup.module.css";
 
 function SignupForm() {
-  const { isLoaded, signUp, setActive } = useSignUp();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect");
 
@@ -21,59 +19,9 @@ function SignupForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Verification state for email code/OTP
-  const [verifying, setVerifying] = useState(false);
-  const [verificationCode, setVerificationCode] = useState("");
-
-  // Helper to sync user to MongoDB and set local session
-  const syncAndRedirect = async (userId: string | null | undefined, userEmail: string, fName: string, lName: string, userPhone: string) => {
-    try {
-      const localTheme = localStorage.getItem("kgl-theme") || "dark";
-      const localCartRaw = localStorage.getItem("kgl-cart");
-
-      let localCart = [];
-      if (localCartRaw) {
-        try {
-          localCart = JSON.parse(localCartRaw);
-        } catch {
-          // ignore
-        }
-      }
-
-      const res = await fetch("/api/users/sync", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          clerkId: userId,
-          email: userEmail,
-          firstName: fName,
-          lastName: lName,
-          phone: userPhone,
-          theme: localTheme,
-          cart: localCart,
-        }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data.token) localStorage.setItem("kgl-token", data.token);
-        localStorage.setItem(
-          "kgl-user",
-          JSON.stringify({
-            _id: data._id,
-            clerkId: data.clerkId || userId,
-            email: data.email,
-            firstName: data.firstName,
-            lastName: data.lastName,
-            phone: data.phone,
-            role: data.role,
-          })
-        );
-      }
-    } catch (e) {
-      console.warn("User sync to DB completed with warning:", e);
-    }
-
+  const storeUserAndRedirect = (data: any) => {
+    if (data.token) localStorage.setItem("kgl-token", data.token);
+    localStorage.setItem("kgl-user", JSON.stringify(data));
     if (redirectTo === "checkout") {
       window.location.href = "/?openCart=true";
     } else {
@@ -81,14 +29,9 @@ function SignupForm() {
     }
   };
 
-  // Submit initial signup info to Clerk
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-
-    if (!isLoaded || !signUp) {
-      return;
-    }
 
     if (password !== confirmPassword) {
       setError("Passwords do not match");
@@ -103,30 +46,22 @@ function SignupForm() {
     setIsLoading(true);
 
     try {
-      // 1. Create the user on Clerk using Clerk's SDK
-      const result = await signUp.create({
-        emailAddress: email.trim(),
-        password,
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        unsafeMetadata: {
-          phone: phone.trim(),
+      const response = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.trim(),
+          passwordHash: password,
           firstName: firstName.trim(),
           lastName: lastName.trim(),
-        },
+          phone: phone.trim(),
+        }),
       });
-
-      // 2. Check if sign up is complete or requires email verification
-      if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
-        await syncAndRedirect(result.createdUserId, email, firstName, lastName, phone);
-      } else {
-        // Send email OTP code
-        await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
-        setVerifying(true);
-      }
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Registration failed");
+      storeUserAndRedirect(data);
     } catch (err: any) {
-      console.error("Clerk signup error:", err);
+      console.error("Signup error:", err);
       const message =
         err.errors?.[0]?.longMessage ||
         err.errors?.[0]?.message ||
@@ -135,64 +70,6 @@ function SignupForm() {
       setError(message);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  // Submit OTP Verification Code
-  const handleVerifyCode = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-
-    if (!isLoaded || !signUp) {
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const completeSignUp = await signUp.attemptEmailAddressVerification({
-        code: verificationCode.trim(),
-      });
-
-      if (completeSignUp.status === "complete") {
-        await setActive({ session: completeSignUp.createdSessionId });
-        await syncAndRedirect(
-          completeSignUp.createdUserId,
-          email,
-          firstName,
-          lastName,
-          phone
-        );
-      } else {
-        setError("Verification incomplete. Please check the code and try again.");
-      }
-    } catch (err: any) {
-      console.error("Verification error:", err);
-      const message =
-        err.errors?.[0]?.longMessage ||
-        err.errors?.[0]?.message ||
-        err.message ||
-        "Verification failed";
-      setError(message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Google OAuth Signup
-  const handleGoogleSignUp = async () => {
-    if (!isLoaded || !signUp) return;
-    try {
-      await signUp.authenticateWithRedirect({
-        strategy: "oauth_google",
-        redirectUrl: "/sso-callback",
-        redirectUrlComplete: redirectTo === "checkout" ? "/?openCart=true" : "/",
-      });
-    } catch (err: any) {
-      console.error("Google OAuth error:", err);
-      setError(
-        err.errors?.[0]?.message || err.message || "Google registration failed"
-      );
     }
   };
 
@@ -226,8 +103,6 @@ function SignupForm() {
 
         {/* Card */}
         <div className={s.card}>
-          {!verifying ? (
-            <>
               <div className={s.cardHeader}>
                 <h1 className={s.title}>Create Account</h1>
                 <p className={s.subtitle}>
@@ -414,95 +289,17 @@ function SignupForm() {
                   <a href="#" className={s.termsLink}>Privacy Policy</a>
                 </p>
 
-                {/* Clerk CAPTCHA Container */}
-                <div id="clerk-captcha" style={{ display: "flex", justifyContent: "center", margin: "8px 0" }} />
-
                 {/* Submit */}
                 <button
                   type="submit"
                   className={s.submit}
-                  disabled={isLoading || !isLoaded}
+                  disabled={isLoading}
                   id="signup-submit"
                 >
                   {isLoading ? <span className={s.spinner} /> : "Create Account"}
                 </button>
               </form>
 
-              {/* Divider */}
-              <div className={s.divider}>
-                <span className={s.dividerText}>or</span>
-              </div>
-
-              {/* Google Signup */}
-              <button
-                className={s.socialBtn}
-                id="google-signup"
-                type="button"
-                onClick={handleGoogleSignUp}
-                disabled={isLoading || !isLoaded}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24">
-                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
-                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-                </svg>
-                Continue with Google
-              </button>
-            </>
-          ) : (
-            <>
-              {/* Verification Step */}
-              <div className={s.cardHeader}>
-                <h1 className={s.title}>Verify Email</h1>
-                <p className={s.subtitle}>
-                  We sent a 6-digit code to <strong>{email}</strong>
-                </p>
-              </div>
-
-              {error && (
-                <div className={s.error} id="verify-error">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10" />
-                    <line x1="12" y1="8" x2="12" y2="12" />
-                    <line x1="12" y1="16" x2="12.01" y2="16" />
-                  </svg>
-                  {error}
-                </div>
-              )}
-
-              <form onSubmit={handleVerifyCode} className={s.form} id="verify-form">
-                <div className={s.field}>
-                  <label htmlFor="verify-code" className={s.label}>
-                    Verification Code
-                  </label>
-                  <div className={s.inputWrapper}>
-                    <input
-                      type="text"
-                      id="verify-code"
-                      className={s.input}
-                      style={{ paddingLeft: "16px", letterSpacing: "0.25em", textAlign: "center", fontSize: "18px", fontWeight: "600" }}
-                      placeholder="••••••"
-                      value={verificationCode}
-                      onChange={(e) => setVerificationCode(e.target.value)}
-                      required
-                      maxLength={6}
-                      autoFocus
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  className={s.submit}
-                  disabled={isLoading || !isLoaded}
-                  id="verify-submit"
-                >
-                  {isLoading ? <span className={s.spinner} /> : "Verify & Complete"}
-                </button>
-              </form>
-            </>
-          )}
         </div>
 
         {/* Footer */}

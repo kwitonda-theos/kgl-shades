@@ -1,12 +1,6 @@
 const mongoose = require('mongoose');
 
 const UserSchema = new mongoose.Schema({
-    clerkId: {
-        type: String,
-        unique: true,
-        sparse: true,
-        index: true
-    },
     email: {
         type: String,
         required: true,

@@ -8,7 +8,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'kgl-shades-secret-key-change-me';
 // Helper: generate a JWT token for a user
 const generateToken = (user) => {
     return jwt.sign(
-        { id: user._id, email: user.email, clerkId: user.clerkId },
+        { id: user._id, email: user.email },
         JWT_SECRET,
         { expiresIn: '7d' } // token lasts 7 days
     );
@@ -50,94 +50,6 @@ const getUserById = async (req, res) => {
 };
 
 // ============================================================
-// @desc    Get a single user by their Clerk ID
-// @route   GET /api/users/by-clerk/:clerkId
-// @access  Public
-// ============================================================
-const getUserByClerkId = async (req, res) => {
-    try {
-        const user = await User.findOne({ clerkId: req.params.clerkId })
-            .populate('cart.product')
-            .select('-passwordHash');
-
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-
-        res.status(200).json(user);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-};
-
-// ============================================================
-// @desc    Instant Sync / Upsert a Clerk user in MongoDB
-// @route   POST /api/users/sync
-// @access  Public
-// ============================================================
-const syncClerkUser = async (req, res) => {
-    try {
-        const { clerkId, email, firstName, lastName, phone, imageUrl, theme, cart } = req.body;
-
-        if (!email) {
-            return res.status(400).json({ message: 'Email is required to sync user' });
-        }
-
-        const normalizedEmail = email.toLowerCase().trim();
-
-        // Build update object
-        const updateData = {
-            email: normalizedEmail,
-        };
-
-        if (clerkId) updateData.clerkId = clerkId;
-        if (firstName !== undefined) updateData.firstName = firstName;
-        if (lastName !== undefined) updateData.lastName = lastName;
-        if (phone !== undefined) updateData.phone = String(phone);
-        if (imageUrl !== undefined) updateData.imageUrl = imageUrl;
-        if (theme !== undefined) updateData.theme = theme;
-
-        const filter = clerkId
-            ? { $or: [{ clerkId }, { email: normalizedEmail }] }
-            : { email: normalizedEmail };
-
-        // Find existing user first so we don't accidentally overwrite existing cart if not provided
-        let user = await User.findOne(filter).populate('cart.product');
-
-        if (!user) {
-            if (cart) updateData.cart = cart;
-            user = await User.create(updateData);
-        } else {
-            // Update fields
-            Object.assign(user, updateData);
-            if (cart && (!user.cart || user.cart.length === 0)) {
-                user.cart = cart;
-            }
-            await user.save();
-            user = await User.findById(user._id).populate('cart.product');
-        }
-
-        const token = generateToken(user);
-
-        res.status(200).json({
-            _id: user._id,
-            clerkId: user.clerkId,
-            email: user.email,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            phone: user.phone,
-            imageUrl: user.imageUrl,
-            role: user.role,
-            theme: user.theme,
-            cart: user.cart,
-            token
-        });
-    } catch (error) {
-        console.error('Error syncing Clerk user:', error);
-        res.status(500).json({ message: error.message });
-    }
-};
-
 // ============================================================
 // @desc    Register a new user (signup - legacy/fallback)
 // @route   POST /api/users
@@ -171,7 +83,6 @@ const createUser = async (req, res) => {
 
         res.status(201).json({
             _id: user._id,
-            clerkId: user.clerkId,
             email: user.email,
             firstName: user.firstName,
             lastName: user.lastName,
@@ -214,7 +125,6 @@ const loginUser = async (req, res) => {
 
         res.status(200).json({
             _id: user._id,
-            clerkId: user.clerkId,
             email: user.email,
             firstName: user.firstName,
             lastName: user.lastName,
@@ -304,8 +214,6 @@ const deleteUser = async (req, res) => {
 module.exports = {
     getUsers,
     getUserById,
-    getUserByClerkId,
-    syncClerkUser,
     createUser,
     loginUser,
     updateUser,

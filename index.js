@@ -12,7 +12,6 @@ const waitlistRoutes = require('./routes/waitlistRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const collectionRoutes = require('./routes/collectionRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
-const webhookRoutes = require('./routes/webhookRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -40,7 +39,6 @@ app.use('/api/waitlist', waitlistRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/collections', collectionRoutes);
 app.use('/api/payments', paymentRoutes);
-app.use('/api/webhooks', webhookRoutes);
 
 // ── Health Check ───────────────────────────────────────────────
 app.get('/api/health', (req, res) => {

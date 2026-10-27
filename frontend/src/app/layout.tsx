@@ -1,4 +1,3 @@
-import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { Inter, Outfit } from "next/font/google";
 import { CartProvider } from "@/context/CartContext";
@@ -64,9 +63,7 @@ export default function RootLayout({
         />
       </head>
       <body>
-        <ClerkProvider>
-          <CartProvider>{children}</CartProvider>
-        </ClerkProvider>
+        <CartProvider>{children}</CartProvider>
       </body>
     </html>
   );

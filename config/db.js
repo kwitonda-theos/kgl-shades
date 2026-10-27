@@ -1,11 +1,21 @@
 const mongoose = require('mongoose');
+
 const connectDB = async () => {
     try {
-        const conn = await mongoose.connect(process.env.MONGODB_URI);
-        console.log(`🔥 KGL Shades DB Connected: ${conn.connection.host}`)
+        const mongoUri = process.env.MONGODB_URI?.trim();
+
+        if (!mongoUri) {
+            throw new Error(
+                'MONGODB_URI is not configured. Add it to the backend .env file before starting the server.'
+            );
+        }
+
+        const conn = await mongoose.connect(mongoUri);
+        console.log(`🔥 KGL Shades DB Connected: ${conn.connection.host}`);
     } catch (error) {
-        console.log(`❌ Error: ${error.message}`);
+        console.error(`❌ Database connection error: ${error.message}`);
         process.exit(1);
     }
-}
-module.exports = connectDB
+};
+
+module.exports = connectDB;

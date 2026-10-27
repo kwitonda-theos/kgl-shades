@@ -1,10 +1,9 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const { verifyToken } = require('@clerk/backend');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'kgl-shades-secret-key-change-me';
 
-// Middleware: verify JWT (internal or Clerk) and check that the user is an admin
+// Middleware: verify the application's JWT and check that the user is an admin
 const adminAuth = async (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
@@ -20,27 +19,9 @@ const adminAuth = async (req, res, next) => {
             const decoded = jwt.verify(token, JWT_SECRET);
             if (decoded.id) {
                 user = await User.findById(decoded.id).select('-passwordHash');
-            } else if (decoded.clerkId) {
-                user = await User.findOne({ clerkId: decoded.clerkId }).select('-passwordHash');
             }
         } catch (jwtErr) {
-            // 2. If internal JWT failed, attempt Clerk token verification
-            const clerkSecret = process.env.CLERK_SECRET_KEY;
-            if (clerkSecret) {
-                try {
-                    const verifiedClerk = await verifyToken(token, {
-                        secretKey: clerkSecret,
-                    });
-                    if (verifiedClerk && verifiedClerk.sub) {
-                        user = await User.findOne({ clerkId: verifiedClerk.sub }).select('-passwordHash');
-                    }
-                } catch (clerkErr) {
-                    // Token invalid under both verifiers
-                    return res.status(401).json({ message: 'Invalid or expired token' });
-                }
-            } else {
-                return res.status(401).json({ message: 'Invalid or expired token' });
-            }
+            return res.status(401).json({ message: 'Invalid or expired token' });
         }
 
         if (!user) {
