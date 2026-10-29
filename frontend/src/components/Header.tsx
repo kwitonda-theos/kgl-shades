@@ -11,6 +11,7 @@ interface UserData {
   firstName: string;
   lastName: string;
   phone?: string | number;
+  imageUrl?: string;
   role?: string;
 }
 
@@ -79,6 +80,8 @@ export default function Header({ leftNode }: HeaderProps = {}) {
     setIsCartOpen(false);
   }, []);
 
+  const initials = `${user?.firstName?.[0] || ""}${user?.lastName?.[0] || user?.email?.[0] || ""}`.toUpperCase();
+
   return (
     <>
       <header className="site-header" id="site-header">
@@ -110,6 +113,18 @@ export default function Header({ leftNode }: HeaderProps = {}) {
             </>
           ) : (
             <div className="profile-menu">
+              <button type="button" className="profile-avatar" aria-label={`Signed in as ${user.firstName} ${user.lastName}`} title={`${user.firstName} ${user.lastName}`}>
+                {user.imageUrl ? (
+                  <img src={user.imageUrl} alt="" className="profile-avatar-image" />
+                ) : (
+                  initials
+                )}
+              </button>
+              {user.role === "admin" && (
+                <Link href="/admin" className="nav-auth-btn nav-auth-btn-primary">
+                  Admin Dashboard
+                </Link>
+              )}
               <button
                 type="button"
                 className="nav-auth-btn"

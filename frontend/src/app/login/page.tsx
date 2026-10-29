@@ -86,6 +86,7 @@ function LoginForm() {
                 firstName: data.firstName,
                 lastName: data.lastName,
                 phone: data.phone,
+                imageUrl: data.imageUrl,
                 role: data.role,
               })
             );
